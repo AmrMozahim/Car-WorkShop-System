@@ -18,7 +18,7 @@ public class MechanicWindow {
 
     public void show() {
         Stage stage = new Stage();
-        stage.setTitle("👨‍🔧 إدارة الميكانيكيين");
+        stage.setTitle("Mechanic Management");
 
         BorderPane root = new BorderPane();
         root.getStyleClass().add("window-root");
@@ -27,10 +27,10 @@ public class MechanicWindow {
         header.getStyleClass().add("window-header");
         header.setPadding(new Insets(15));
 
-        Label title = new Label("👨‍🔧 إدارة الميكانيكيين");
+        Label title = new Label("Mechanic Management");
         title.getStyleClass().add("window-title");
 
-        Label subtitle = new Label("إدارة فريق الميكانيكيين");
+        Label subtitle = new Label("Manage mechanics team");
         subtitle.getStyleClass().add("window-subtitle");
 
         header.getChildren().addAll(title, subtitle);
@@ -42,35 +42,34 @@ public class MechanicWindow {
         content.setVgap(15);
         content.setHgap(15);
 
-        // نموذج الإضافة
         VBox formBox = new VBox(15);
         formBox.getStyleClass().add("form-box");
 
-        Label formTitle = new Label("➕ إضافة ميكانيكي جديد");
+        Label formTitle = new Label("Add New Mechanic");
         formTitle.getStyleClass().add("form-title");
 
         VBox nameBox = new VBox(5);
-        Label lblName = new Label("الاسم *");
+        Label lblName = new Label("Name *");
         lblName.getStyleClass().add("field-label");
         txtName.getStyleClass().add("field-input");
-        txtName.setPromptText("أدخل اسم الميكانيكي");
+        txtName.setPromptText("Enter mechanic name");
         nameBox.getChildren().addAll(lblName, txtName);
 
         VBox phoneBox = new VBox(5);
-        Label lblPhone = new Label("رقم الهاتف");
+        Label lblPhone = new Label("Phone Number");
         lblPhone.getStyleClass().add("field-label");
         txtPhone.getStyleClass().add("field-input");
-        txtPhone.setPromptText("أدخل رقم الهاتف");
+        txtPhone.setPromptText("Enter phone number");
         phoneBox.getChildren().addAll(lblPhone, txtPhone);
 
         HBox formButtons = new HBox(10);
         formButtons.getStyleClass().add("form-buttons");
 
-        Button btnAdd = new Button("➕ إضافة ميكانيكي");
+        Button btnAdd = new Button("Add Mechanic");
         btnAdd.getStyleClass().add("btn-primary");
         btnAdd.setOnAction(e -> addMechanic());
 
-        Button btnClear = new Button("🗑️ مسح الحقول");
+        Button btnClear = new Button("Clear Fields");
         btnClear.getStyleClass().add("btn-secondary");
         btnClear.setOnAction(e -> clearFields());
 
@@ -79,17 +78,16 @@ public class MechanicWindow {
         formBox.getChildren().addAll(formTitle, nameBox, phoneBox, formButtons);
         content.add(formBox, 0, 0);
 
-        // قائمة الميكانيكيين
         VBox tableBox = new VBox(10);
         tableBox.getStyleClass().add("table-box");
 
         HBox tableHeader = new HBox();
         tableHeader.getStyleClass().add("table-header");
 
-        Label tableTitle = new Label("📋 قائمة الميكانيكيين");
+        Label tableTitle = new Label("Mechanics List");
         tableTitle.getStyleClass().add("table-title");
 
-        Button btnRefresh = new Button("🔄 تحديث");
+        Button btnRefresh = new Button("Refresh");
         btnRefresh.getStyleClass().add("btn-refresh");
         btnRefresh.setOnAction(e -> loadMechanics());
 
@@ -119,11 +117,11 @@ public class MechanicWindow {
         colId.setCellValueFactory(new PropertyValueFactory<>("mechanicId"));
         colId.setPrefWidth(60);
 
-        TableColumn<Mechanic, String> colName = new TableColumn<>("الاسم");
+        TableColumn<Mechanic, String> colName = new TableColumn<>("Name");
         colName.setCellValueFactory(new PropertyValueFactory<>("name"));
         colName.setPrefWidth(200);
 
-        TableColumn<Mechanic, String> colPhone = new TableColumn<>("الهاتف");
+        TableColumn<Mechanic, String> colPhone = new TableColumn<>("Phone");
         colPhone.setCellValueFactory(new PropertyValueFactory<>("phone"));
         colPhone.setPrefWidth(150);
 
@@ -144,7 +142,7 @@ public class MechanicWindow {
                 mechanicList.add(mechanic);
             }
         } catch (Exception e) {
-            showAlert("خطأ", "❌ حدث خطأ أثناء تحميل الميكانيكيين");
+            showAlert("Error", "Error loading mechanics");
             e.printStackTrace();
         }
     }
@@ -154,7 +152,7 @@ public class MechanicWindow {
         String phone = txtPhone.getText().trim();
 
         if (name.isEmpty()) {
-            showAlert("تحذير", "⚠️ الرجاء إدخال اسم الميكانيكي");
+            showAlert("Warning", "Please enter mechanic name");
             return;
         }
 
@@ -165,11 +163,11 @@ public class MechanicWindow {
 
         int result = DB.executeUpdate(sql);
         if (result > 0) {
-            showAlert("نجاح", "✅ تم إضافة الميكانيكي بنجاح");
+            showAlert("Success", "Mechanic added successfully");
             clearFields();
             loadMechanics();
         } else {
-            showAlert("خطأ", "❌ فشل إضافة الميكانيكي");
+            showAlert("Error", "Failed to add mechanic");
         }
     }
 

@@ -18,7 +18,7 @@ public class SupplierWindow {
 
     public void show() {
         Stage stage = new Stage();
-        stage.setTitle("🏭 إدارة الموردين");
+        stage.setTitle("Supplier Management");
 
         BorderPane root = new BorderPane();
         root.getStyleClass().add("window-root");
@@ -27,10 +27,10 @@ public class SupplierWindow {
         header.getStyleClass().add("window-header");
         header.setPadding(new Insets(15));
 
-        Label title = new Label("🏭 إدارة الموردين");
+        Label title = new Label("Supplier Management");
         title.getStyleClass().add("window-title");
 
-        Label subtitle = new Label("إدارة موردين قطع الغيار");
+        Label subtitle = new Label("Manage spare parts suppliers");
         subtitle.getStyleClass().add("window-subtitle");
 
         header.getChildren().addAll(title, subtitle);
@@ -42,35 +42,34 @@ public class SupplierWindow {
         content.setVgap(15);
         content.setHgap(15);
 
-        // نموذج الإضافة
         VBox formBox = new VBox(15);
         formBox.getStyleClass().add("form-box");
 
-        Label formTitle = new Label("➕ إضافة مورد جديد");
+        Label formTitle = new Label("Add New Supplier");
         formTitle.getStyleClass().add("form-title");
 
         VBox nameBox = new VBox(5);
-        Label lblName = new Label("اسم المورد *");
+        Label lblName = new Label("Supplier Name *");
         lblName.getStyleClass().add("field-label");
         txtName.getStyleClass().add("field-input");
-        txtName.setPromptText("أدخل اسم المورد");
+        txtName.setPromptText("Enter supplier name");
         nameBox.getChildren().addAll(lblName, txtName);
 
         VBox phoneBox = new VBox(5);
-        Label lblPhone = new Label("رقم الهاتف");
+        Label lblPhone = new Label("Phone Number");
         lblPhone.getStyleClass().add("field-label");
         txtPhone.getStyleClass().add("field-input");
-        txtPhone.setPromptText("أدخل رقم الهاتف");
+        txtPhone.setPromptText("Enter phone number");
         phoneBox.getChildren().addAll(lblPhone, txtPhone);
 
         HBox formButtons = new HBox(10);
         formButtons.getStyleClass().add("form-buttons");
 
-        Button btnAdd = new Button("➕ إضافة مورد");
+        Button btnAdd = new Button("Add Supplier");
         btnAdd.getStyleClass().add("btn-primary");
         btnAdd.setOnAction(e -> addSupplier());
 
-        Button btnClear = new Button("🗑️ مسح الحقول");
+        Button btnClear = new Button("Clear Fields");
         btnClear.getStyleClass().add("btn-secondary");
         btnClear.setOnAction(e -> clearFields());
 
@@ -79,17 +78,16 @@ public class SupplierWindow {
         formBox.getChildren().addAll(formTitle, nameBox, phoneBox, formButtons);
         content.add(formBox, 0, 0);
 
-        // قائمة الموردين
         VBox tableBox = new VBox(10);
         tableBox.getStyleClass().add("table-box");
 
         HBox tableHeader = new HBox();
         tableHeader.getStyleClass().add("table-header");
 
-        Label tableTitle = new Label("📋 قائمة الموردين");
+        Label tableTitle = new Label("Suppliers List");
         tableTitle.getStyleClass().add("table-title");
 
-        Button btnRefresh = new Button("🔄 تحديث");
+        Button btnRefresh = new Button("Refresh");
         btnRefresh.getStyleClass().add("btn-refresh");
         btnRefresh.setOnAction(e -> loadSuppliers());
 
@@ -119,11 +117,11 @@ public class SupplierWindow {
         colId.setCellValueFactory(new PropertyValueFactory<>("supplierId"));
         colId.setPrefWidth(60);
 
-        TableColumn<Supplier, String> colName = new TableColumn<>("اسم المورد");
+        TableColumn<Supplier, String> colName = new TableColumn<>("Supplier Name");
         colName.setCellValueFactory(new PropertyValueFactory<>("supplierName"));
         colName.setPrefWidth(200);
 
-        TableColumn<Supplier, String> colPhone = new TableColumn<>("الهاتف");
+        TableColumn<Supplier, String> colPhone = new TableColumn<>("Phone");
         colPhone.setCellValueFactory(new PropertyValueFactory<>("phone"));
         colPhone.setPrefWidth(150);
 
@@ -144,7 +142,7 @@ public class SupplierWindow {
                 supplierList.add(supplier);
             }
         } catch (Exception e) {
-            showAlert("خطأ", "❌ حدث خطأ أثناء تحميل الموردين");
+            showAlert("Error", "Error loading suppliers");
             e.printStackTrace();
         }
     }
@@ -154,7 +152,7 @@ public class SupplierWindow {
         String phone = txtPhone.getText().trim();
 
         if (name.isEmpty()) {
-            showAlert("تحذير", "⚠️ الرجاء إدخال اسم المورد");
+            showAlert("Warning", "Please enter supplier name");
             return;
         }
 
@@ -165,11 +163,11 @@ public class SupplierWindow {
 
         int result = DB.executeUpdate(sql);
         if (result > 0) {
-            showAlert("نجاح", "✅ تم إضافة المورد بنجاح");
+            showAlert("Success", "Supplier added successfully");
             clearFields();
             loadSuppliers();
         } else {
-            showAlert("خطأ", "❌ فشل إضافة المورد");
+            showAlert("Error", "Failed to add supplier");
         }
     }
 

@@ -19,100 +19,89 @@ public class CustomerWindow {
 
     public void show() {
         Stage stage = new Stage();
-        stage.setTitle("👥 إدارة العملاء");
+        stage.setTitle("Customer Management");
 
-        // تخطيط رئيسي
         BorderPane root = new BorderPane();
         root.getStyleClass().add("window-root");
 
-        // رأس النافذة
         VBox header = new VBox(10);
         header.getStyleClass().add("window-header");
         header.setPadding(new Insets(15));
 
-        Label title = new Label("👥 إدارة العملاء");
+        Label title = new Label("Customer Management");
         title.getStyleClass().add("window-title");
 
-        Label subtitle = new Label("إدارة معلومات العملاء وإضافة عملاء جدد");
+        Label subtitle = new Label("Manage customer information and add new customers");
         subtitle.getStyleClass().add("window-subtitle");
 
         header.getChildren().addAll(title, subtitle);
         root.setTop(header);
 
-        // محتوى النافذة
         GridPane content = new GridPane();
         content.getStyleClass().add("window-content");
         content.setPadding(new Insets(20));
         content.setVgap(15);
         content.setHgap(15);
 
-        // قسم النموذج
         VBox formBox = new VBox(15);
         formBox.getStyleClass().add("form-box");
 
-        Label formTitle = new Label("📝 نموذج إضافة عميل");
+        Label formTitle = new Label("Add New Customer");
         formTitle.getStyleClass().add("form-title");
 
-        // حقل الاسم
         VBox nameBox = new VBox(5);
-        Label lblName = new Label("الاسم الكامل *");
+        Label lblName = new Label("Full Name *");
         lblName.getStyleClass().add("field-label");
         txtName.getStyleClass().add("field-input");
-        txtName.setPromptText("أدخل الاسم الكامل للعميل");
+        txtName.setPromptText("Enter full name");
         nameBox.getChildren().addAll(lblName, txtName);
 
-        // حقل الهاتف
         VBox phoneBox = new VBox(5);
-        Label lblPhone = new Label("رقم الهاتف");
+        Label lblPhone = new Label("Phone Number");
         lblPhone.getStyleClass().add("field-label");
         txtPhone.getStyleClass().add("field-input");
-        txtPhone.setPromptText("أدخل رقم الهاتف");
+        txtPhone.setPromptText("Enter phone number");
         phoneBox.getChildren().addAll(lblPhone, txtPhone);
 
-        // حقل البريد الإلكتروني
         VBox emailBox = new VBox(5);
-        Label lblEmail = new Label("البريد الإلكتروني");
+        Label lblEmail = new Label("Email");
         lblEmail.getStyleClass().add("field-label");
         txtEmail.getStyleClass().add("field-input");
-        txtEmail.setPromptText("أدخل البريد الإلكتروني");
+        txtEmail.setPromptText("Enter email address");
         emailBox.getChildren().addAll(lblEmail, txtEmail);
 
-        // أزرار النموذج
         HBox formButtons = new HBox(10);
         formButtons.getStyleClass().add("form-buttons");
 
-        Button btnAdd = new Button("➕ إضافة عميل");
+        Button btnAdd = new Button("Add Customer");
         btnAdd.getStyleClass().add("btn-primary");
         btnAdd.setOnAction(e -> addCustomer());
 
-        Button btnClear = new Button("🗑️ مسح الحقول");
+        Button btnClear = new Button("Clear Fields");
         btnClear.getStyleClass().add("btn-secondary");
         btnClear.setOnAction(e -> clearFields());
 
         formButtons.getChildren().addAll(btnAdd, btnClear);
 
-        // تجميع النموذج
         formBox.getChildren().addAll(formTitle, nameBox, phoneBox, emailBox, formButtons);
         content.add(formBox, 0, 0);
 
-        // قسم الجدول
         VBox tableBox = new VBox(10);
         tableBox.getStyleClass().add("table-box");
 
         HBox tableHeader = new HBox();
         tableHeader.getStyleClass().add("table-header");
 
-        Label tableTitle = new Label("📋 قائمة العملاء");
+        Label tableTitle = new Label("Customer List");
         tableTitle.getStyleClass().add("table-title");
 
-        Button btnRefresh = new Button("🔄 تحديث القائمة");
+        Button btnRefresh = new Button("Refresh List");
         btnRefresh.getStyleClass().add("btn-refresh");
         btnRefresh.setOnAction(e -> loadCustomers());
 
         tableHeader.getChildren().addAll(tableTitle, btnRefresh);
         HBox.setHgrow(tableTitle, Priority.ALWAYS);
 
-        // إنشاء الجدول
         createTable();
         table.setPrefHeight(300);
 
@@ -121,42 +110,38 @@ public class CustomerWindow {
 
         root.setCenter(content);
 
-        // إنشاء المشهد
         Scene scene = new Scene(root, 1000, 600);
         scene.getStylesheets().add(getClass().getResource("style.css").toExternalForm());
         stage.setScene(scene);
         stage.show();
 
-        // تحميل البيانات
         loadCustomers();
     }
 
     private void createTable() {
         table.getColumns().clear();
 
-        // أعمدة الجدول
-        TableColumn<Customer, Integer> colId = new TableColumn<>("#");
+        TableColumn<Customer, Integer> colId = new TableColumn<>("ID");
         colId.setCellValueFactory(new PropertyValueFactory<>("customerId"));
         colId.setPrefWidth(60);
 
-        TableColumn<Customer, String> colName = new TableColumn<>("الاسم");
+        TableColumn<Customer, String> colName = new TableColumn<>("Name");
         colName.setCellValueFactory(new PropertyValueFactory<>("fullName"));
         colName.setPrefWidth(200);
 
-        TableColumn<Customer, String> colPhone = new TableColumn<>("الهاتف");
+        TableColumn<Customer, String> colPhone = new TableColumn<>("Phone");
         colPhone.setCellValueFactory(new PropertyValueFactory<>("phone"));
         colPhone.setPrefWidth(150);
 
-        TableColumn<Customer, String> colEmail = new TableColumn<>("البريد الإلكتروني");
+        TableColumn<Customer, String> colEmail = new TableColumn<>("Email");
         colEmail.setCellValueFactory(new PropertyValueFactory<>("email"));
         colEmail.setPrefWidth(200);
 
-        // عمود الإجراءات
-        TableColumn<Customer, Void> colActions = new TableColumn<>("الإجراءات");
+        TableColumn<Customer, Void> colActions = new TableColumn<>("Actions");
         colActions.setPrefWidth(150);
         colActions.setCellFactory(param -> new TableCell<Customer, Void>() {
-            private final Button btnEdit = new Button("✏️ تعديل");
-            private final Button btnDelete = new Button("🗑️ حذف");
+            private final Button btnEdit = new Button("Edit");
+            private final Button btnDelete = new Button("Delete");
 
             {
                 btnEdit.getStyleClass().add("btn-table-edit");
@@ -203,7 +188,7 @@ public class CustomerWindow {
                 customerList.add(customer);
             }
         } catch (Exception e) {
-            showAlert("خطأ", "❌ حدث خطأ أثناء تحميل العملاء: " + e.getMessage());
+            showAlert("Error", "Error loading customers: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -214,7 +199,7 @@ public class CustomerWindow {
         String email = txtEmail.getText().trim();
 
         if (name.isEmpty()) {
-            showAlert("تحذير", "⚠️ الرجاء إدخال اسم العميل");
+            showAlert("Warning", "Please enter customer name");
             return;
         }
 
@@ -225,31 +210,30 @@ public class CustomerWindow {
 
         int result = DB.executeUpdate(sql);
         if (result > 0) {
-            showAlert("نجاح", "✅ تم إضافة العميل بنجاح");
+            showAlert("Success", "Customer added successfully");
             clearFields();
             loadCustomers();
         } else {
-            showAlert("خطأ", "❌ فشل إضافة العميل");
+            showAlert("Error", "Failed to add customer");
         }
     }
 
     private void editCustomer(Customer customer) {
-        // يمكنك إضافة نافذة تعديل هنا
-        showAlert("تعديل", "تعديل بيانات العميل: " + customer.getFullName());
+        showAlert("Edit", "Editing customer: " + customer.getFullName());
     }
 
     private void deleteCustomer(Customer customer) {
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
-        alert.setTitle("تأكيد الحذف");
-        alert.setHeaderText("هل أنت متأكد من حذف العميل؟");
-        alert.setContentText("العميل: " + customer.getFullName() + "\nهذا الإجراء لا يمكن التراجع عنه!");
+        alert.setTitle("Confirm Delete");
+        alert.setHeaderText("Are you sure you want to delete this customer?");
+        alert.setContentText("Customer: " + customer.getFullName() + "\nThis action cannot be undone!");
 
         alert.showAndWait().ifPresent(response -> {
             if (response == ButtonType.OK) {
                 String sql = "DELETE FROM customer WHERE customer_id = " + customer.getCustomerId();
                 int result = DB.executeUpdate(sql);
                 if (result > 0) {
-                    showAlert("نجاح", "✅ تم حذف العميل بنجاح");
+                    showAlert("Success", "Customer deleted successfully");
                     loadCustomers();
                 }
             }
@@ -270,7 +254,6 @@ public class CustomerWindow {
         alert.showAndWait();
     }
 
-    // فئة Customer للجدول
     public static class Customer {
         private int customerId;
         private String fullName;

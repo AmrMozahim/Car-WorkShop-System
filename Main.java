@@ -3,10 +3,9 @@ import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
+import java.text.DecimalFormat;
 
 public class Main extends Application {
 
@@ -16,34 +15,29 @@ public class Main extends Application {
 
     @Override
     public void start(Stage primaryStage) {
-        primaryStage.setTitle("🚗 نظام إدارة ورشة السيارات");
+        primaryStage.setTitle("Car Workshop Management System");
 
-        // إنشاء تخطيط رئيسي
         BorderPane root = new BorderPane();
 
-        // رأس الصفحة
         VBox header = createHeader();
         root.setTop(header);
 
-        // محتوى الصفحة الرئيسية
         GridPane content = createContent();
         root.setCenter(content);
 
-        // تذييل الصفحة
         HBox footer = createFooter();
         root.setBottom(footer);
 
-        // إنشاء المشهد
         Scene scene = new Scene(root, 1000, 700);
 
-        // تحميل ملف CSS
         try {
             scene.getStylesheets().add(getClass().getResource("style.css").toExternalForm());
         } catch (Exception e) {
-            System.out.println("ملف CSS غير موجود، سيتم استخدام التنسيق الافتراضي");
+            System.out.println("CSS file not found, using default styling");
         }
 
         primaryStage.setScene(scene);
+        primaryStage.setMaximized(true);
         primaryStage.show();
     }
 
@@ -54,21 +48,19 @@ public class Main extends Application {
         HBox topBar = new HBox();
         topBar.getStyleClass().add("top-bar");
 
-        // الشعار والعنوان
         HBox logoBox = new HBox(10);
         Label logo = new Label("🚗");
         logo.getStyleClass().add("logo");
 
-        Label title = new Label("نظام إدارة ورشة السيارات");
+        Label title = new Label("Car Workshop Management System");
         title.getStyleClass().add("main-title");
 
         logoBox.getChildren().addAll(logo, title);
 
-        // معلومات المستخدم
         HBox userBox = new HBox(10);
         userBox.getStyleClass().add("user-box");
 
-        Label welcome = new Label("مرحباً، مدير النظام");
+        Label welcome = new Label("Welcome, System Manager");
         welcome.getStyleClass().add("welcome-label");
 
         Label timeLabel = new Label(java.time.LocalDate.now().toString());
@@ -76,11 +68,9 @@ public class Main extends Application {
 
         userBox.getChildren().addAll(welcome, timeLabel);
 
-        // إضافة العناصر إلى الشريط العلوي
         topBar.getChildren().addAll(logoBox, userBox);
         HBox.setHgrow(logoBox, Priority.ALWAYS);
 
-        // قائمة التنقل
         HBox navBar = createNavBar();
 
         header.getChildren().addAll(topBar, navBar);
@@ -93,31 +83,30 @@ public class Main extends Application {
         navBar.setPadding(new Insets(10));
 
         String[] navItems = {
-                "🏠 الرئيسية", "👥 العملاء", "🧾 الفواتير",
-                "🔧 الخدمات", "🔩 قطع الغيار", "🚗 السيارات",
-                "👨‍🔧 الميكانيكيين", "🏭 الموردين", "📊 التقارير"
+                "🏠 Dashboard", "👥 Customers", "🧾 Invoices",
+                "🔧 Services", "🔩 Parts", "🚗 Vehicles",
+                "👨‍🔧 Mechanics", "🏭 Suppliers", "📊 Reports"
         };
 
         for (String item : navItems) {
             Button btn = new Button(item);
             btn.getStyleClass().add("nav-button");
 
-            // إضافة أحداث النقر
-            if (item.contains("العملاء")) {
+            if (item.contains("Customers")) {
                 btn.setOnAction(e -> showCustomers());
-            } else if (item.contains("الفواتير")) {
+            } else if (item.contains("Invoices")) {
                 btn.setOnAction(e -> showInvoices());
-            } else if (item.contains("الخدمات")) {
+            } else if (item.contains("Services")) {
                 btn.setOnAction(e -> showServices());
-            } else if (item.contains("قطع الغيار")) {
+            } else if (item.contains("Parts")) {
                 btn.setOnAction(e -> showParts());
-            } else if (item.contains("السيارات")) {
+            } else if (item.contains("Vehicles")) {
                 btn.setOnAction(e -> showVehicles());
-            } else if (item.contains("الميكانيكيين")) {
+            } else if (item.contains("Mechanics")) {
                 btn.setOnAction(e -> showMechanics());
-            } else if (item.contains("الموردين")) {
+            } else if (item.contains("Suppliers")) {
                 btn.setOnAction(e -> showSuppliers());
-            } else if (item.contains("التقارير")) {
+            } else if (item.contains("Reports")) {
                 btn.setOnAction(e -> showReports());
             }
 
@@ -134,15 +123,12 @@ public class Main extends Application {
         content.setVgap(20);
         content.setHgap(20);
 
-        // بطاقة العمليات السريعة
         VBox quickActions = createQuickActions();
         content.add(quickActions, 0, 0);
 
-        // بطاقة الإحصائيات
         VBox stats = createStats();
         content.add(stats, 1, 0);
 
-        // بطاقة الفواتير الحديثة
         VBox recentInvoices = createRecentInvoices();
         content.add(recentInvoices, 0, 1, 2, 1);
 
@@ -153,15 +139,15 @@ public class Main extends Application {
         VBox box = new VBox(10);
         box.getStyleClass().add("card");
 
-        Label title = new Label("⚡ عمليات سريعة");
+        Label title = new Label("⚡ Quick Actions");
         title.getStyleClass().add("card-title");
 
         String[] actions = {
-                "➕ إضافة عميل جديد",
-                "🧾 إنشاء فاتورة جديدة",
-                "🔧 تسجيل خدمة جديدة",
-                "🔩 إضافة قطعة غيار",
-                "🚗 إضافة سيارة"
+                "➕ Add New Customer",
+                "🧾 Create New Invoice",
+                "🔧 Register New Service",
+                "🔩 Add New Part",
+                "🚗 Add Vehicle"
         };
 
         VBox buttonsBox = new VBox(8);
@@ -169,6 +155,19 @@ public class Main extends Application {
             Button btn = new Button(action);
             btn.getStyleClass().add("quick-action");
             btn.setMaxWidth(Double.MAX_VALUE);
+
+            if (action.contains("Customer")) {
+                btn.setOnAction(e -> showCustomers());
+            } else if (action.contains("Invoice")) {
+                btn.setOnAction(e -> showInvoices());
+            } else if (action.contains("Service")) {
+                btn.setOnAction(e -> showServices());
+            } else if (action.contains("Part")) {
+                btn.setOnAction(e -> showParts());
+            } else if (action.contains("Vehicle")) {
+                btn.setOnAction(e -> showVehicles());
+            }
+
             buttonsBox.getChildren().add(btn);
         }
 
@@ -180,22 +179,24 @@ public class Main extends Application {
         VBox box = new VBox(10);
         box.getStyleClass().add("card");
 
-        Label title = new Label("📊 إحصائيات سريعة");
+        Label title = new Label("📊 Live Statistics");
         title.getStyleClass().add("card-title");
 
-        // إنشاء شبكة للإحصائيات
         GridPane statsGrid = new GridPane();
         statsGrid.setVgap(10);
         statsGrid.setHgap(15);
 
-        // الإحصائيات
+        DecimalFormat df = new DecimalFormat("#,##0.00");
+
         String[][] stats = {
-                {"👥 عدد العملاء", "150"},
-                {"🧾 فواتير اليوم", "12"},
-                {"🔧 خدمات قيد التنفيذ", "8"},
-                {"⚠️ قطع منخفضة المخزون", "5"},
-                {"💰 الإيرادات اليوم", "5,250 ر.س"},
-                {"🚗 السيارات في الورشة", "3"}
+                {"👥 Total Customers", String.valueOf(DB.getTotalCustomers())},
+                {"🧾 Today's Invoices", String.valueOf(DB.getTodayInvoicesCount())},
+                {"🔧 Total Services", String.valueOf(DB.getTotalServices())},
+                {"⚠️ Low Stock Items", String.valueOf(DB.getLowStockParts())},
+                {"💰 Today's Revenue", "$" + df.format(DB.getTodayRevenue())},
+                {"🚗 Total Vehicles", String.valueOf(DB.getTotalVehicles())},
+                {"📊 Total Invoices", String.valueOf(DB.getTotalInvoices())},
+                {"💵 Total Revenue", "$" + df.format(DB.getTotalRevenue())}
         };
 
         for (int i = 0; i < stats.length; i++) {
@@ -213,52 +214,80 @@ public class Main extends Application {
             statsGrid.add(statBox, i % 2, i / 2);
         }
 
-        box.getChildren().addAll(title, statsGrid);
+        Button refreshBtn = new Button("🔄 Refresh Statistics");
+        refreshBtn.getStyleClass().add("btn-refresh");
+        refreshBtn.setOnAction(e -> refreshStatistics(statsGrid));
+
+        box.getChildren().addAll(title, statsGrid, refreshBtn);
         return box;
+    }
+
+    private void refreshStatistics(GridPane statsGrid) {
+        DecimalFormat df = new DecimalFormat("#,##0.00");
+
+        String[][] stats = {
+                {"👥 Total Customers", String.valueOf(DB.getTotalCustomers())},
+                {"🧾 Today's Invoices", String.valueOf(DB.getTodayInvoicesCount())},
+                {"🔧 Total Services", String.valueOf(DB.getTotalServices())},
+                {"⚠️ Low Stock Items", String.valueOf(DB.getLowStockParts())},
+                {"💰 Today's Revenue", "$" + df.format(DB.getTodayRevenue())},
+                {"🚗 Total Vehicles", String.valueOf(DB.getTotalVehicles())},
+                {"📊 Total Invoices", String.valueOf(DB.getTotalInvoices())},
+                {"💵 Total Revenue", "$" + df.format(DB.getTotalRevenue())}
+        };
+
+        for (int i = 0; i < stats.length; i++) {
+            VBox statBox = (VBox) statsGrid.getChildren().get(i);
+            Label statValue = (Label) statBox.getChildren().get(1);
+            statValue.setText(stats[i][1]);
+        }
     }
 
     private VBox createRecentInvoices() {
         VBox box = new VBox(10);
         box.getStyleClass().add("card");
 
-        Label title = new Label("📋 آخر الفواتير");
+        Label title = new Label("📋 Recent Invoices");
         title.getStyleClass().add("card-title");
 
-        // جدول الفواتير الحديثة (مثال)
         VBox invoicesBox = new VBox(5);
 
-        String[][] recentInvoices = {
-                {"INV-2024-001", "أحمد محمد", "1,500 ر.س", "مدفوعة"},
-                {"INV-2024-002", "سارة علي", "2,300 ر.س", "مدفوعة"},
-                {"INV-2024-003", "محمد خالد", "850 ر.س", "قيد الانتظار"},
-                {"INV-2024-004", "نورة أحمد", "3,200 ر.س", "مدفوعة"},
-                {"INV-2024-005", "خالد سعيد", "1,100 ر.س", "مدفوعة جزئياً"}
-        };
+        try {
+            String sql = "SELECT s.invoice_id, c.full_name, s.total_amount, s.invoice_date " +
+                    "FROM salesinvoice s " +
+                    "JOIN customer c ON s.customer_id = c.customer_id " +
+                    "ORDER BY s.invoice_date DESC " +
+                    "LIMIT 5";
 
-        for (String[] invoice : recentInvoices) {
-            HBox invoiceRow = new HBox(20);
-            invoiceRow.getStyleClass().add("invoice-row");
+            var rs = DB.executeQuery(sql);
+            int count = 0;
+            while (rs.next() && count < 5) {
+                HBox invoiceRow = new HBox(20);
+                invoiceRow.getStyleClass().add("invoice-row");
 
-            Label invNo = new Label(invoice[0]);
-            invNo.getStyleClass().add("invoice-number");
+                Label invNo = new Label("INV-" + rs.getInt("invoice_id"));
+                invNo.getStyleClass().add("invoice-number");
 
-            Label customer = new Label(invoice[1]);
-            customer.getStyleClass().add("invoice-customer");
+                Label customer = new Label(rs.getString("full_name"));
+                customer.getStyleClass().add("invoice-customer");
 
-            Label amount = new Label(invoice[2]);
-            amount.getStyleClass().add("invoice-amount");
+                Label amount = new Label("$" + rs.getDouble("total_amount"));
+                amount.getStyleClass().add("invoice-amount");
 
-            Label status = new Label(invoice[3]);
-            status.getStyleClass().add(invoice[3].equals("مدفوعة") ? "status-paid" : "status-pending");
+                Label date = new Label(rs.getString("invoice_date"));
+                date.getStyleClass().add("invoice-date");
 
-            invoiceRow.getChildren().addAll(invNo, customer, amount, status);
-            HBox.setHgrow(customer, Priority.ALWAYS);
+                invoiceRow.getChildren().addAll(invNo, customer, amount, date);
+                HBox.setHgrow(customer, Priority.ALWAYS);
 
-            invoicesBox.getChildren().add(invoiceRow);
+                invoicesBox.getChildren().add(invoiceRow);
+                count++;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
 
-        // زر عرض الكل
-        Button viewAll = new Button("عرض جميع الفواتير");
+        Button viewAll = new Button("View All Invoices");
         viewAll.getStyleClass().add("view-all-button");
         viewAll.setOnAction(e -> showInvoices());
 
@@ -270,10 +299,10 @@ public class Main extends Application {
         HBox footer = new HBox();
         footer.getStyleClass().add("footer");
 
-        Label copyright = new Label("© 2024 نظام إدارة ورشة السيارات - جميع الحقوق محفوظة");
+        Label copyright = new Label("© 2024 Car Workshop Management System - All Rights Reserved");
         copyright.getStyleClass().add("copyright");
 
-        Label version = new Label("الإصدار 1.0.0");
+        Label version = new Label("Version 1.0.0");
         version.getStyleClass().add("version");
 
         footer.getChildren().addAll(copyright, version);
@@ -282,7 +311,6 @@ public class Main extends Application {
         return footer;
     }
 
-    // دوال عرض النوافذ المختلفة
     private void showCustomers() {
         try {
             CustomerWindow window = new CustomerWindow();

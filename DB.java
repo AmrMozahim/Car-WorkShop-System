@@ -2,6 +2,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.time.LocalDate;
 
 public class DB {
 
@@ -11,14 +12,14 @@ public class DB {
         try {
             if (connection == null || connection.isClosed()) {
                 Class.forName("com.mysql.cj.jdbc.Driver");
-                String url = "jdbc:mysql://localhost:3306/car_workship_db?useSSL=false&serverTimezone=UTC&characterEncoding=UTF-8";
+                String url = "jdbc:mysql://localhost:3306/car_workship_db";
                 String user = "root";
-                String pass = "";
+                String pass = "Amr1135@mr";
                 connection = DriverManager.getConnection(url, user, pass);
-                System.out.println("✅ تم الاتصال بقاعدة البيانات بنجاح");
+                System.out.println("Database connection successful");
             }
         } catch (Exception e) {
-            System.out.println("❌ خطأ في الاتصال بقاعدة البيانات: " + e.getMessage());
+            System.out.println("Database connection error: " + e.getMessage());
             e.printStackTrace();
         }
         return connection;
@@ -30,7 +31,7 @@ public class DB {
             Statement stmt = conn.createStatement();
             return stmt.executeQuery(sql);
         } catch (Exception e) {
-            System.out.println("❌ خطأ في تنفيذ الاستعلام: " + sql);
+            System.out.println("Query execution error: " + sql);
             e.printStackTrace();
             return null;
         }
@@ -41,10 +42,10 @@ public class DB {
             Connection conn = getConnection();
             Statement stmt = conn.createStatement();
             int result = stmt.executeUpdate(sql);
-            System.out.println("✅ تم تنفيذ العملية: " + sql);
+            System.out.println("Operation executed: " + sql);
             return result;
         } catch (Exception e) {
-            System.out.println("❌ خطأ في تنفيذ التحديث: " + sql);
+            System.out.println("Update execution error: " + sql);
             e.printStackTrace();
             return 0;
         }
@@ -66,9 +67,9 @@ public class DB {
     }
 
     public static ResultSet getParts() {
-        String sql = "SELECT s.*, p.supplier_name FROM sparepart s " +
-                "JOIN supplier p ON s.supplier_id = p.supplier_id " +
-                "ORDER BY s.part_name";
+        String sql = "SELECT p.*, s.supplier_name FROM sparepart p " +
+                "LEFT JOIN supplier s ON p.supplier_id = s.supplier_id " +
+                "ORDER BY p.part_name";
         return executeQuery(sql);
     }
 
@@ -87,11 +88,124 @@ public class DB {
         return executeQuery("SELECT * FROM supplier ORDER BY supplier_name");
     }
 
+    public static int getTotalCustomers() {
+        try {
+            ResultSet rs = executeQuery("SELECT COUNT(*) as total FROM customer");
+            if (rs.next()) {
+                return rs.getInt("total");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    public static int getTodayInvoicesCount() {
+        try {
+            String today = LocalDate.now().toString();
+            ResultSet rs = executeQuery("SELECT COUNT(*) as total FROM salesinvoice WHERE DATE(invoice_date) = '" + today + "'");
+            if (rs.next()) {
+                return rs.getInt("total");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    public static double getTodayRevenue() {
+        try {
+            String today = LocalDate.now().toString();
+            ResultSet rs = executeQuery("SELECT SUM(total_amount) as total FROM salesinvoice WHERE DATE(invoice_date) = '" + today + "'");
+            if (rs.next()) {
+                return rs.getDouble("total");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0.0;
+    }
+
+    public static int getTotalInvoices() {
+        try {
+            ResultSet rs = executeQuery("SELECT COUNT(*) as total FROM salesinvoice");
+            if (rs.next()) {
+                return rs.getInt("total");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    public static double getTotalRevenue() {
+        try {
+            ResultSet rs = executeQuery("SELECT SUM(total_amount) as total FROM salesinvoice");
+            if (rs.next()) {
+                return rs.getDouble("total");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0.0;
+    }
+
+    public static int getTotalVehicles() {
+        try {
+            ResultSet rs = executeQuery("SELECT COUNT(*) as total FROM vehicle");
+            if (rs.next()) {
+                return rs.getInt("total");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    public static int getLowStockParts() {
+        try {
+            ResultSet rs = executeQuery("SELECT COUNT(*) as total FROM sparepart WHERE quantity < 10");
+            if (rs.next()) {
+                return rs.getInt("total");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    public static int getTotalServices() {
+        try {
+            ResultSet rs = executeQuery("SELECT COUNT(*) as total FROM service");
+            if (rs.next()) {
+                return rs.getInt("total");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    public static int getVehiclesInWorkshop() {
+        try {
+            ResultSet rs = executeQuery("SELECT COUNT(DISTINCT v.vehicle_id) as total " +
+                    "FROM vehicle v " +
+                    "JOIN salesinvoice s ON v.customer_id = s.customer_id " +
+                    "WHERE DATE(s.invoice_date) = '" + LocalDate.now().toString() + "'");
+            if (rs.next()) {
+                return rs.getInt("total");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
     public static void closeConnection() {
         try {
             if (connection != null && !connection.isClosed()) {
                 connection.close();
-                System.out.println("✅ تم إغلاق الاتصال بقاعدة البيانات");
+                System.out.println("Database connection closed");
             }
         } catch (Exception e) {
             e.printStackTrace();

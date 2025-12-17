@@ -20,7 +20,7 @@ public class PartsWindow {
 
     public void show() {
         Stage stage = new Stage();
-        stage.setTitle("🔩 إدارة قطع الغيار");
+        stage.setTitle("Parts Management");
 
         BorderPane root = new BorderPane();
         root.getStyleClass().add("window-root");
@@ -29,10 +29,10 @@ public class PartsWindow {
         header.getStyleClass().add("window-header");
         header.setPadding(new Insets(15));
 
-        Label title = new Label("🔩 إدارة قطع الغيار");
+        Label title = new Label("Parts Management");
         title.getStyleClass().add("window-title");
 
-        Label subtitle = new Label("إدارة مخزون قطع الغيار والموردين");
+        Label subtitle = new Label("Manage spare parts inventory and suppliers");
         subtitle.getStyleClass().add("window-subtitle");
 
         header.getChildren().addAll(title, subtitle);
@@ -44,50 +44,49 @@ public class PartsWindow {
         content.setVgap(15);
         content.setHgap(15);
 
-        // نموذج الإضافة
         VBox formBox = new VBox(15);
         formBox.getStyleClass().add("form-box");
 
-        Label formTitle = new Label("➕ إضافة قطعة جديدة");
+        Label formTitle = new Label("Add New Part");
         formTitle.getStyleClass().add("form-title");
 
         VBox nameBox = new VBox(5);
-        Label lblName = new Label("اسم القطعة *");
+        Label lblName = new Label("Part Name *");
         lblName.getStyleClass().add("field-label");
         txtName.getStyleClass().add("field-input");
-        txtName.setPromptText("أدخل اسم القطعة");
+        txtName.setPromptText("Enter part name");
         nameBox.getChildren().addAll(lblName, txtName);
 
         VBox quantityBox = new VBox(5);
-        Label lblQuantity = new Label("الكمية *");
+        Label lblQuantity = new Label("Quantity *");
         lblQuantity.getStyleClass().add("field-label");
         txtQuantity.getStyleClass().add("field-input");
-        txtQuantity.setPromptText("أدخل الكمية");
+        txtQuantity.setPromptText("Enter quantity");
         quantityBox.getChildren().addAll(lblQuantity, txtQuantity);
 
         VBox priceBox = new VBox(5);
-        Label lblPrice = new Label("السعر *");
+        Label lblPrice = new Label("Price *");
         lblPrice.getStyleClass().add("field-label");
         txtPrice.getStyleClass().add("field-input");
-        txtPrice.setPromptText("أدخل السعر");
+        txtPrice.setPromptText("Enter price");
         priceBox.getChildren().addAll(lblPrice, txtPrice);
 
         VBox supplierBox = new VBox(5);
-        Label lblSupplier = new Label("المورد");
+        Label lblSupplier = new Label("Supplier");
         lblSupplier.getStyleClass().add("field-label");
         cmbSuppliers.getStyleClass().add("field-combo");
-        cmbSuppliers.setPromptText("اختر المورد");
+        cmbSuppliers.setPromptText("Select supplier");
         loadSuppliers();
         supplierBox.getChildren().addAll(lblSupplier, cmbSuppliers);
 
         HBox formButtons = new HBox(10);
         formButtons.getStyleClass().add("form-buttons");
 
-        Button btnAdd = new Button("➕ إضافة قطعة");
+        Button btnAdd = new Button("Add Part");
         btnAdd.getStyleClass().add("btn-primary");
         btnAdd.setOnAction(e -> addPart());
 
-        Button btnClear = new Button("🗑️ مسح الحقول");
+        Button btnClear = new Button("Clear Fields");
         btnClear.getStyleClass().add("btn-secondary");
         btnClear.setOnAction(e -> clearFields());
 
@@ -96,17 +95,16 @@ public class PartsWindow {
         formBox.getChildren().addAll(formTitle, nameBox, quantityBox, priceBox, supplierBox, formButtons);
         content.add(formBox, 0, 0);
 
-        // قائمة القطع
         VBox tableBox = new VBox(10);
         tableBox.getStyleClass().add("table-box");
 
         HBox tableHeader = new HBox();
         tableHeader.getStyleClass().add("table-header");
 
-        Label tableTitle = new Label("📋 مخزون قطع الغيار");
+        Label tableTitle = new Label("Parts Inventory");
         tableTitle.getStyleClass().add("table-title");
 
-        Button btnRefresh = new Button("🔄 تحديث");
+        Button btnRefresh = new Button("Refresh");
         btnRefresh.getStyleClass().add("btn-refresh");
         btnRefresh.setOnAction(e -> loadParts());
 
@@ -147,15 +145,15 @@ public class PartsWindow {
         colId.setCellValueFactory(new PropertyValueFactory<>("partId"));
         colId.setPrefWidth(60);
 
-        TableColumn<Part, String> colName = new TableColumn<>("اسم القطعة");
+        TableColumn<Part, String> colName = new TableColumn<>("Part Name");
         colName.setCellValueFactory(new PropertyValueFactory<>("partName"));
         colName.setPrefWidth(200);
 
-        TableColumn<Part, Integer> colQuantity = new TableColumn<>("الكمية");
+        TableColumn<Part, Integer> colQuantity = new TableColumn<>("Quantity");
         colQuantity.setCellValueFactory(new PropertyValueFactory<>("quantity"));
         colQuantity.setPrefWidth(80);
 
-        TableColumn<Part, Double> colPrice = new TableColumn<>("السعر");
+        TableColumn<Part, Double> colPrice = new TableColumn<>("Price");
         colPrice.setCellValueFactory(new PropertyValueFactory<>("price"));
         colPrice.setPrefWidth(100);
 
@@ -177,7 +175,7 @@ public class PartsWindow {
                 partList.add(part);
             }
         } catch (Exception e) {
-            showAlert("خطأ", "❌ حدث خطأ أثناء تحميل قطع الغيار");
+            showAlert("Error", "Error loading parts");
             e.printStackTrace();
         }
     }
@@ -189,17 +187,17 @@ public class PartsWindow {
         String supplier = cmbSuppliers.getValue();
 
         if (name.isEmpty()) {
-            showAlert("تحذير", "⚠️ الرجاء إدخال اسم القطعة");
+            showAlert("Warning", "Please enter part name");
             return;
         }
 
         if (quantity.isEmpty()) {
-            showAlert("تحذير", "⚠️ الرجاء إدخال الكمية");
+            showAlert("Warning", "Please enter quantity");
             return;
         }
 
         if (price.isEmpty()) {
-            showAlert("تحذير", "⚠️ الرجاء إدخال السعر");
+            showAlert("Warning", "Please enter price");
             return;
         }
 
@@ -207,7 +205,7 @@ public class PartsWindow {
             Integer.parseInt(quantity);
             Double.parseDouble(price);
         } catch (NumberFormatException e) {
-            showAlert("تحذير", "⚠️ الكمية والسعر يجب أن يكونا أرقاماً");
+            showAlert("Warning", "Quantity and price must be numbers");
             return;
         }
 
@@ -224,11 +222,11 @@ public class PartsWindow {
 
         int result = DB.executeUpdate(sql);
         if (result > 0) {
-            showAlert("نجاح", "✅ تم إضافة القطعة بنجاح");
+            showAlert("Success", "Part added successfully");
             clearFields();
             loadParts();
         } else {
-            showAlert("خطأ", "❌ فشل إضافة القطعة");
+            showAlert("Error", "Failed to add part");
         }
     }
 

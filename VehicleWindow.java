@@ -20,7 +20,7 @@ public class VehicleWindow {
 
     public void show() {
         Stage stage = new Stage();
-        stage.setTitle("🚗 إدارة السيارات");
+        stage.setTitle("Vehicle Management");
 
         BorderPane root = new BorderPane();
         root.getStyleClass().add("window-root");
@@ -29,10 +29,10 @@ public class VehicleWindow {
         header.getStyleClass().add("window-header");
         header.setPadding(new Insets(15));
 
-        Label title = new Label("🚗 إدارة السيارات");
+        Label title = new Label("Vehicle Management");
         title.getStyleClass().add("window-title");
 
-        Label subtitle = new Label("إدارة سيارات العملاء وتتبعها");
+        Label subtitle = new Label("Manage customer vehicles and tracking");
         subtitle.getStyleClass().add("window-subtitle");
 
         header.getChildren().addAll(title, subtitle);
@@ -44,50 +44,49 @@ public class VehicleWindow {
         content.setVgap(15);
         content.setHgap(15);
 
-        // نموذج الإضافة
         VBox formBox = new VBox(15);
         formBox.getStyleClass().add("form-box");
 
-        Label formTitle = new Label("➕ إضافة سيارة جديدة");
+        Label formTitle = new Label("Add New Vehicle");
         formTitle.getStyleClass().add("form-title");
 
         VBox customerBox = new VBox(5);
-        Label lblCustomer = new Label("العميل *");
+        Label lblCustomer = new Label("Customer *");
         lblCustomer.getStyleClass().add("field-label");
         cmbCustomers.getStyleClass().add("field-combo");
-        cmbCustomers.setPromptText("اختر العميل");
+        cmbCustomers.setPromptText("Select customer");
         loadCustomers();
         customerBox.getChildren().addAll(lblCustomer, cmbCustomers);
 
         VBox plateBox = new VBox(5);
-        Label lblPlate = new Label("رقم اللوحة *");
+        Label lblPlate = new Label("Plate Number *");
         lblPlate.getStyleClass().add("field-label");
         txtPlate.getStyleClass().add("field-input");
-        txtPlate.setPromptText("أدخل رقم اللوحة");
+        txtPlate.setPromptText("Enter plate number");
         plateBox.getChildren().addAll(lblPlate, txtPlate);
 
         VBox modelBox = new VBox(5);
-        Label lblModel = new Label("الموديل");
+        Label lblModel = new Label("Model");
         lblModel.getStyleClass().add("field-label");
         txtModel.getStyleClass().add("field-input");
-        txtModel.setPromptText("أدخل الموديل");
+        txtModel.setPromptText("Enter model");
         modelBox.getChildren().addAll(lblModel, txtModel);
 
         VBox yearBox = new VBox(5);
-        Label lblYear = new Label("سنة الصنع");
+        Label lblYear = new Label("Manufacture Year");
         lblYear.getStyleClass().add("field-label");
         txtYear.getStyleClass().add("field-input");
-        txtYear.setPromptText("أدخل سنة الصنع");
+        txtYear.setPromptText("Enter manufacture year");
         yearBox.getChildren().addAll(lblYear, txtYear);
 
         HBox formButtons = new HBox(10);
         formButtons.getStyleClass().add("form-buttons");
 
-        Button btnAdd = new Button("➕ إضافة سيارة");
+        Button btnAdd = new Button("Add Vehicle");
         btnAdd.getStyleClass().add("btn-primary");
         btnAdd.setOnAction(e -> addVehicle());
 
-        Button btnClear = new Button("🗑️ مسح الحقول");
+        Button btnClear = new Button("Clear Fields");
         btnClear.getStyleClass().add("btn-secondary");
         btnClear.setOnAction(e -> clearFields());
 
@@ -96,17 +95,16 @@ public class VehicleWindow {
         formBox.getChildren().addAll(formTitle, customerBox, plateBox, modelBox, yearBox, formButtons);
         content.add(formBox, 0, 0);
 
-        // قائمة السيارات
         VBox tableBox = new VBox(10);
         tableBox.getStyleClass().add("table-box");
 
         HBox tableHeader = new HBox();
         tableHeader.getStyleClass().add("table-header");
 
-        Label tableTitle = new Label("📋 قائمة السيارات");
+        Label tableTitle = new Label("Vehicle List");
         tableTitle.getStyleClass().add("table-title");
 
-        Button btnRefresh = new Button("🔄 تحديث");
+        Button btnRefresh = new Button("Refresh");
         btnRefresh.getStyleClass().add("btn-refresh");
         btnRefresh.setOnAction(e -> loadVehicles());
 
@@ -147,26 +145,26 @@ public class VehicleWindow {
         colId.setCellValueFactory(new PropertyValueFactory<>("vehicleId"));
         colId.setPrefWidth(60);
 
-        TableColumn<Vehicle, String> colCustomer = new TableColumn<>("العميل");
+        TableColumn<Vehicle, String> colCustomer = new TableColumn<>("Customer");
         colCustomer.setCellValueFactory(new PropertyValueFactory<>("customerName"));
         colCustomer.setPrefWidth(150);
 
-        TableColumn<Vehicle, String> colPlate = new TableColumn<>("رقم اللوحة");
+        TableColumn<Vehicle, String> colPlate = new TableColumn<>("Plate Number");
         colPlate.setCellValueFactory(new PropertyValueFactory<>("plateNumber"));
         colPlate.setPrefWidth(100);
 
-        TableColumn<Vehicle, String> colModel = new TableColumn<>("الموديل");
+        TableColumn<Vehicle, String> colModel = new TableColumn<>("Model");
         colModel.setCellValueFactory(new PropertyValueFactory<>("model"));
         colModel.setPrefWidth(150);
 
-        TableColumn<Vehicle, Integer> colYear = new TableColumn<>("سنة الصنع");
+        TableColumn<Vehicle, Integer> colYear = new TableColumn<>("Manufacture Year");
         colYear.setCellValueFactory(new PropertyValueFactory<>("year"));
         colYear.setPrefWidth(80);
 
-        TableColumn<Vehicle, Void> colActions = new TableColumn<>("الإجراءات");
+        TableColumn<Vehicle, Void> colActions = new TableColumn<>("Actions");
         colActions.setPrefWidth(120);
         colActions.setCellFactory(param -> new TableCell<Vehicle, Void>() {
-            private final Button btnDelete = new Button("🗑️ حذف");
+            private final Button btnDelete = new Button("Delete");
 
             {
                 btnDelete.getStyleClass().add("btn-table-delete");
@@ -206,7 +204,7 @@ public class VehicleWindow {
                 vehicleList.add(vehicle);
             }
         } catch (Exception e) {
-            showAlert("خطأ", "❌ حدث خطأ أثناء تحميل السيارات");
+            showAlert("Error", "Error loading vehicles");
             e.printStackTrace();
         }
     }
@@ -218,12 +216,12 @@ public class VehicleWindow {
         String year = txtYear.getText().trim();
 
         if (customer == null || customer.isEmpty()) {
-            showAlert("تحذير", "⚠️ الرجاء اختيار عميل");
+            showAlert("Warning", "Please select customer");
             return;
         }
 
         if (plate.isEmpty()) {
-            showAlert("تحذير", "⚠️ الرجاء إدخال رقم اللوحة");
+            showAlert("Warning", "Please enter plate number");
             return;
         }
 
@@ -231,7 +229,7 @@ public class VehicleWindow {
             try {
                 Integer.parseInt(year);
             } catch (NumberFormatException e) {
-                showAlert("تحذير", "⚠️ سنة الصنع يجب أن تكون رقماً");
+                showAlert("Warning", "Manufacture year must be a number");
                 return;
             }
         }
@@ -244,26 +242,26 @@ public class VehicleWindow {
 
         int result = DB.executeUpdate(sql);
         if (result > 0) {
-            showAlert("نجاح", "✅ تم إضافة السيارة بنجاح");
+            showAlert("Success", "Vehicle added successfully");
             clearFields();
             loadVehicles();
         } else {
-            showAlert("خطأ", "❌ فشل إضافة السيارة");
+            showAlert("Error", "Failed to add vehicle");
         }
     }
 
     private void deleteVehicle(Vehicle vehicle) {
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
-        alert.setTitle("تأكيد الحذف");
-        alert.setHeaderText("هل أنت متأكد من حذف السيارة؟");
-        alert.setContentText("رقم اللوحة: " + vehicle.getPlateNumber());
+        alert.setTitle("Confirm Delete");
+        alert.setHeaderText("Are you sure you want to delete this vehicle?");
+        alert.setContentText("Plate Number: " + vehicle.getPlateNumber());
 
         alert.showAndWait().ifPresent(response -> {
             if (response == ButtonType.OK) {
                 String sql = "DELETE FROM vehicle WHERE vehicle_id = " + vehicle.getVehicleId();
                 int result = DB.executeUpdate(sql);
                 if (result > 0) {
-                    showAlert("نجاح", "✅ تم حذف السيارة بنجاح");
+                    showAlert("Success", "Vehicle deleted successfully");
                     loadVehicles();
                 }
             }
