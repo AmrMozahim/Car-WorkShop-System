@@ -1,0 +1,366 @@
+/* ملف الأنماط لنظام إدارة ورشة السيارات */
+
+.root {
+    -fx-font-family: "Segoe UI", "Arial", sans-serif;
+    -fx-background-color: #f8f9fa;
+}
+
+/* تنسيق الرأس */
+.header {
+    -fx-background-color: linear-gradient(to right, #2c3e50, #34495e);
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.3), 10, 0, 0, 3);
+}
+
+.top-bar {
+    -fx-padding: 15px 20px;
+    -fx-alignment: center-left;
+}
+
+.logo {
+    -fx-font-size: 28px;
+    -fx-text-fill: #3498db;
+}
+
+.main-title {
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+}
+
+.user-box {
+    -fx-alignment: center-right;
+}
+
+.welcome-label {
+    -fx-text-fill: #ecf0f1;
+    -fx-font-size: 14px;
+}
+
+.time-label {
+    -fx-text-fill: #bdc3c7;
+    -fx-font-size: 12px;
+}
+
+/* تنسيق شريط التنقل */
+.nav-bar {
+    -fx-background-color: #2c3e50;
+    -fx-padding: 10px;
+    -fx-spacing: 5px;
+}
+
+.nav-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: white;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-padding: 8px 16px;
+    -fx-border-radius: 5px;
+    -fx-cursor: hand;
+}
+
+.nav-button:hover {
+    -fx-background-color: #3498db;
+}
+
+/* تنسيق المحتوى الرئيسي */
+.main-content {
+    -fx-background-color: #ecf0f1;
+}
+
+.card {
+    -fx-background-color: white;
+    -fx-background-radius: 10px;
+    -fx-padding: 20px;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.1), 10, 0, 0, 2);
+}
+
+.card-title {
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2c3e50;
+    -fx-padding: 0 0 10px 0;
+}
+
+.quick-action {
+    -fx-background-color: #3498db;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-padding: 12px;
+    -fx-background-radius: 5px;
+    -fx-cursor: hand;
+}
+
+.quick-action:hover {
+    -fx-background-color: #2980b9;
+}
+
+.stat-item {
+    -fx-background-color: #f8f9fa;
+    -fx-padding: 10px;
+    -fx-border-radius: 5px;
+}
+
+.stat-label {
+    -fx-font-size: 12px;
+    -fx-text-fill: #7f8c8d;
+}
+
+.stat-value {
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2c3e50;
+}
+
+.invoice-row {
+    -fx-padding: 8px;
+    -fx-border-color: #eee;
+    -fx-border-width: 0 0 1px 0;
+}
+
+.invoice-number {
+    -fx-font-weight: bold;
+    -fx-text-fill: #2c3e50;
+}
+
+.invoice-customer {
+    -fx-text-fill: #34495e;
+}
+
+.invoice-amount {
+    -fx-font-weight: bold;
+    -fx-text-fill: #27ae60;
+}
+
+.status-paid {
+    -fx-text-fill: #27ae60;
+    -fx-font-weight: bold;
+}
+
+.status-pending {
+    -fx-text-fill: #e74c3c;
+    -fx-font-weight: bold;
+}
+
+.view-all-button {
+    -fx-background-color: #95a5a6;
+    -fx-text-fill: white;
+    -fx-padding: 8px 16px;
+    -fx-background-radius: 5px;
+    -fx-cursor: hand;
+}
+
+.view-all-button:hover {
+    -fx-background-color: #7f8c8d;
+}
+
+/* تنسيق التذييل */
+.footer {
+    -fx-background-color: #2c3e50;
+    -fx-padding: 15px 20px;
+}
+
+.copyright {
+    -fx-text-fill: #bdc3c7;
+    -fx-font-size: 12px;
+}
+
+.version {
+    -fx-text-fill: #95a5a6;
+    -fx-font-size: 11px;
+}
+
+/* تنسيق النوافذ الفرعية */
+.window-root {
+    -fx-background-color: #f8f9fa;
+}
+
+.window-header {
+    -fx-background-color: linear-gradient(to right, #2c3e50, #34495e);
+    -fx-border-color: #3498db;
+    -fx-border-width: 0 0 3px 0;
+}
+
+.window-title {
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+}
+
+.window-subtitle {
+    -fx-font-size: 14px;
+    -fx-text-fill: #bdc3c7;
+}
+
+.window-content {
+    -fx-background-color: white;
+}
+
+/* تنسيق النماذج */
+.form-box {
+    -fx-background-color: #f8f9fa;
+    -fx-padding: 20px;
+    -fx-border-radius: 10px;
+    -fx-border-color: #ddd;
+    -fx-border-width: 1px;
+}
+
+.form-title {
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2c3e50;
+    -fx-padding: 0 0 10px 0;
+}
+
+.field-label {
+    -fx-font-weight: bold;
+    -fx-text-fill: #2c3e50;
+}
+
+.field-input {
+    -fx-pref-height: 35px;
+    -fx-background-radius: 5px;
+    -fx-border-color: #ddd;
+    -fx-border-radius: 5px;
+    -fx-padding: 5px 10px;
+    -fx-font-size: 14px;
+}
+
+.field-input:focused {
+    -fx-border-color: #3498db;
+}
+
+.field-combo {
+    -fx-pref-height: 35px;
+    -fx-background-radius: 5px;
+    -fx-border-color: #ddd;
+    -fx-border-radius: 5px;
+    -fx-font-size: 14px;
+}
+
+.field-date {
+    -fx-pref-height: 35px;
+    -fx-font-size: 14px;
+}
+
+.field-textarea {
+    -fx-background-radius: 5px;
+    -fx-border-color: #ddd;
+    -fx-border-radius: 5px;
+    -fx-padding: 10px;
+    -fx-font-size: 14px;
+}
+
+/* تنسيق الأزرار */
+.btn-primary {
+    -fx-background-color: #3498db;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-padding: 12px 24px;
+    -fx-background-radius: 5px;
+    -fx-cursor: hand;
+    -fx-font-size: 14px;
+}
+
+.btn-primary:hover {
+    -fx-background-color: #2980b9;
+}
+
+.btn-secondary {
+    -fx-background-color: #95a5a6;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-padding: 12px 24px;
+    -fx-background-radius: 5px;
+    -fx-cursor: hand;
+    -fx-font-size: 14px;
+}
+
+.btn-secondary:hover {
+    -fx-background-color: #7f8c8d;
+}
+
+.btn-refresh {
+    -fx-background-color: #27ae60;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-padding: 8px 16px;
+    -fx-background-radius: 5px;
+    -fx-cursor: hand;
+}
+
+.btn-refresh:hover {
+    -fx-background-color: #219653;
+}
+
+.btn-table-edit {
+    -fx-background-color: #f39c12;
+    -fx-text-fill: white;
+    -fx-padding: 5px 10px;
+    -fx-background-radius: 3px;
+    -fx-cursor: hand;
+    -fx-font-size: 12px;
+}
+
+.btn-table-delete {
+    -fx-background-color: #e74c3c;
+    -fx-text-fill: white;
+    -fx-padding: 5px 10px;
+    -fx-background-radius: 3px;
+    -fx-cursor: hand;
+    -fx-font-size: 12px;
+}
+
+/* تنسيق الجداول */
+.table-box {
+    -fx-background-color: white;
+    -fx-padding: 20px;
+    -fx-border-radius: 10px;
+    -fx-border-color: #ddd;
+    -fx-border-width: 1px;
+}
+
+.table-header {
+    -fx-padding: 0 0 10px 0;
+    -fx-border-color: #eee;
+    -fx-border-width: 0 0 1px 0;
+}
+
+.table-title {
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2c3e50;
+}
+
+.table-view {
+    -fx-background-color: white;
+    -fx-border-color: #ddd;
+    -fx-border-radius: 5px;
+}
+
+.table-view .column-header {
+    -fx-background-color: #34495e;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-font-size: 14px;
+    -fx-padding: 10px;
+}
+
+.table-view .table-row-cell {
+    -fx-border-color: #eee;
+}
+
+.table-view .table-row-cell:even {
+    -fx-background-color: #f9f9f9;
+}
+
+.table-view .table-row-cell:odd {
+    -fx-background-color: white;
+}
+
+.table-view .table-row-cell:selected {
+    -fx-background-color: #d6eaf8;
+}
+
+.form-buttons {
+    -fx-padding: 20px 0 0 0;
+}
