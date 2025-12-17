@@ -15,6 +15,9 @@ public class ServiceWindow {
 
     private TextField txtName = new TextField();
     private TextField txtPrice = new TextField();
+    private TextField txtDuration = new TextField();
+    private TextArea txtDescription = new TextArea();
+    private ComboBox<String> cmbCategory = new ComboBox<>();
 
     public void show() {
         Stage stage = new Stage();
@@ -23,76 +26,118 @@ public class ServiceWindow {
         BorderPane root = new BorderPane();
         root.getStyleClass().add("window-root");
 
-        VBox header = new VBox(10);
+        // Header
+        VBox header = new VBox(8);
         header.getStyleClass().add("window-header");
-        header.setPadding(new Insets(15));
+        header.setPadding(new Insets(20));
 
         Label title = new Label("Service Management");
         title.getStyleClass().add("window-title");
 
-        Label subtitle = new Label("Manage services available in the workshop");
+        Label subtitle = new Label("Manage workshop services and pricing");
         subtitle.getStyleClass().add("window-subtitle");
 
         header.getChildren().addAll(title, subtitle);
         root.setTop(header);
 
+        // Content
         GridPane content = new GridPane();
         content.getStyleClass().add("window-content");
-        content.setPadding(new Insets(20));
-        content.setVgap(15);
-        content.setHgap(15);
+        content.setPadding(new Insets(25));
+        content.setVgap(20);
+        content.setHgap(20);
 
-        VBox formBox = new VBox(15);
+        // Left - Form
+        VBox formBox = new VBox(20);
         formBox.getStyleClass().add("form-box");
+        formBox.setPrefWidth(350);
 
         Label formTitle = new Label("Add New Service");
         formTitle.getStyleClass().add("form-title");
 
-        VBox nameBox = new VBox(5);
+        // Name Field
+        VBox nameBox = new VBox(8);
+        nameBox.getStyleClass().add("form-group");
         Label lblName = new Label("Service Name *");
         lblName.getStyleClass().add("field-label");
         txtName.getStyleClass().add("field-input");
-        txtName.setPromptText("Enter service name");
+        txtName.setPromptText("Oil Change, Brake Repair, etc.");
         nameBox.getChildren().addAll(lblName, txtName);
 
-        VBox priceBox = new VBox(5);
-        Label lblPrice = new Label("Price *");
+        // Price Field
+        VBox priceBox = new VBox(8);
+        priceBox.getStyleClass().add("form-group");
+        Label lblPrice = new Label("Price ($) *");
         lblPrice.getStyleClass().add("field-label");
         txtPrice.getStyleClass().add("field-input");
-        txtPrice.setPromptText("Enter price");
+        txtPrice.setPromptText("50.00");
         priceBox.getChildren().addAll(lblPrice, txtPrice);
 
-        HBox formButtons = new HBox(10);
+        // Duration Field
+        VBox durationBox = new VBox(8);
+        durationBox.getStyleClass().add("form-group");
+        Label lblDuration = new Label("Duration (hours)");
+        lblDuration.getStyleClass().add("field-label");
+        txtDuration.getStyleClass().add("field-input");
+        txtDuration.setPromptText("1.5");
+        durationBox.getChildren().addAll(lblDuration, txtDuration);
+
+        // Category Field
+        VBox categoryBox = new VBox(8);
+        categoryBox.getStyleClass().add("form-group");
+        Label lblCategory = new Label("Category");
+        lblCategory.getStyleClass().add("field-label");
+        cmbCategory.getStyleClass().add("field-combo");
+        cmbCategory.getItems().addAll("Maintenance", "Repair", "Inspection", "Tire", "Electrical", "Body Work");
+        cmbCategory.setPromptText("Select category");
+        categoryBox.getChildren().addAll(lblCategory, cmbCategory);
+
+        // Description Field
+        VBox descBox = new VBox(8);
+        descBox.getStyleClass().add("form-group");
+        Label lblDesc = new Label("Description");
+        lblDesc.getStyleClass().add("field-label");
+        txtDescription.getStyleClass().add("field-textarea");
+        txtDescription.setPromptText("Service details...");
+        txtDescription.setPrefRowCount(3);
+        descBox.getChildren().addAll(lblDesc, txtDescription);
+
+        // Buttons
+        HBox formButtons = new HBox(15);
         formButtons.getStyleClass().add("form-buttons");
 
         Button btnAdd = new Button("Add Service");
         btnAdd.getStyleClass().add("btn-primary");
         btnAdd.setOnAction(e -> addService());
 
-        Button btnClear = new Button("Clear Fields");
+        Button btnClear = new Button("Clear");
         btnClear.getStyleClass().add("btn-secondary");
         btnClear.setOnAction(e -> clearFields());
 
         formButtons.getChildren().addAll(btnAdd, btnClear);
 
-        formBox.getChildren().addAll(formTitle, nameBox, priceBox, formButtons);
+        formBox.getChildren().addAll(formTitle, nameBox, priceBox, durationBox,
+                categoryBox, descBox, formButtons);
         content.add(formBox, 0, 0);
 
-        VBox tableBox = new VBox(10);
+        // Right - Table
+        VBox tableBox = new VBox(15);
         tableBox.getStyleClass().add("table-box");
 
         HBox tableHeader = new HBox();
-        tableHeader.getStyleClass().add("table-header");
+        tableHeader.getStyleClass().add("table-header-box");
 
         Label tableTitle = new Label("Service List");
         tableTitle.getStyleClass().add("table-title");
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
 
         Button btnRefresh = new Button("Refresh");
         btnRefresh.getStyleClass().add("btn-refresh");
         btnRefresh.setOnAction(e -> loadServices());
 
-        tableHeader.getChildren().addAll(tableTitle, btnRefresh);
-        HBox.setHgrow(tableTitle, Priority.ALWAYS);
+        tableHeader.getChildren().addAll(tableTitle, spacer, btnRefresh);
 
         createTable();
         table.setPrefHeight(400);
@@ -102,8 +147,8 @@ public class ServiceWindow {
 
         root.setCenter(content);
 
-        Scene scene = new Scene(root, 900, 600);
-        scene.getStylesheets().add(getClass().getResource("style.css").toExternalForm());
+        Scene scene = new Scene(root, 1000, 650);
+        scene.getStylesheets().add("style.css");
         stage.setScene(scene);
         stage.show();
 
@@ -113,29 +158,54 @@ public class ServiceWindow {
     private void createTable() {
         table.getColumns().clear();
 
-        TableColumn<Service, Integer> colId = new TableColumn<>("#");
+        TableColumn<Service, Integer> colId = new TableColumn<>("ID");
         colId.setCellValueFactory(new PropertyValueFactory<>("serviceId"));
-        colId.setPrefWidth(60);
+        colId.setPrefWidth(80);
 
-        TableColumn<Service, String> colName = new TableColumn<>("Service Name");
+        TableColumn<Service, String> colName = new TableColumn<>("Service");
         colName.setCellValueFactory(new PropertyValueFactory<>("serviceName"));
-        colName.setPrefWidth(250);
+        colName.setPrefWidth(200);
 
-        TableColumn<Service, Double> colPrice = new TableColumn<>("Price");
+        TableColumn<Service, Double> colPrice = new TableColumn<>("Price ($)");
         colPrice.setCellValueFactory(new PropertyValueFactory<>("price"));
         colPrice.setPrefWidth(100);
+
+        TableColumn<Service, String> colDuration = new TableColumn<>("Duration");
+        colDuration.setCellValueFactory(new PropertyValueFactory<>("duration"));
+        colDuration.setPrefWidth(100);
+
+        TableColumn<Service, String> colCategory = new TableColumn<>("Category");
+        colCategory.setCellValueFactory(new PropertyValueFactory<>("category"));
+        colCategory.setPrefWidth(120);
+
+        TableColumn<Service, Integer> colUsage = new TableColumn<>("Usage Count");
+        colUsage.setCellValueFactory(new PropertyValueFactory<>("usageCount"));
+        colUsage.setPrefWidth(100);
 
         TableColumn<Service, Void> colActions = new TableColumn<>("Actions");
         colActions.setPrefWidth(120);
         colActions.setCellFactory(param -> new TableCell<Service, Void>() {
+            private final Button btnEdit = new Button("Edit");
             private final Button btnDelete = new Button("Delete");
 
             {
+                btnEdit.getStyleClass().add("btn-table-edit");
                 btnDelete.getStyleClass().add("btn-table-delete");
+
+                HBox buttons = new HBox(8, btnEdit, btnDelete);
+                buttons.getStyleClass().add("table-actions");
+
+                btnEdit.setOnAction(e -> {
+                    Service service = getTableView().getItems().get(getIndex());
+                    editService(service);
+                });
+
                 btnDelete.setOnAction(e -> {
                     Service service = getTableView().getItems().get(getIndex());
                     deleteService(service);
                 });
+
+                setGraphic(buttons);
             }
 
             @Override
@@ -143,13 +213,12 @@ public class ServiceWindow {
                 super.updateItem(item, empty);
                 if (empty) {
                     setGraphic(null);
-                } else {
-                    setGraphic(btnDelete);
                 }
             }
         });
 
-        table.getColumns().addAll(colId, colName, colPrice, colActions);
+        table.getColumns().addAll(colId, colName, colPrice, colDuration,
+                colCategory, colUsage, colActions);
         table.setItems(serviceList);
     }
 
@@ -161,19 +230,24 @@ public class ServiceWindow {
                 Service service = new Service(
                         rs.getInt("service_id"),
                         rs.getString("service_name"),
-                        rs.getDouble("price")
+                        rs.getDouble("price"),
+                        rs.getString("duration"),
+                        rs.getString("category"),
+                        rs.getInt("usage_count")
                 );
                 serviceList.add(service);
             }
         } catch (Exception e) {
-            showAlert("Error", "Error loading services");
-            e.printStackTrace();
+            showAlert("Error", "Error loading services: " + e.getMessage());
         }
     }
 
     private void addService() {
         String name = txtName.getText().trim();
         String price = txtPrice.getText().trim();
+        String duration = txtDuration.getText().trim();
+        String category = cmbCategory.getValue();
+        String description = txtDescription.getText().trim();
 
         if (name.isEmpty()) {
             showAlert("Warning", "Please enter service name");
@@ -193,8 +267,9 @@ public class ServiceWindow {
         }
 
         String sql = String.format(
-                "INSERT INTO service (service_name, price) VALUES ('%s', %s)",
-                name, price
+                "INSERT INTO service (service_name, price, duration, category, description) " +
+                        "VALUES ('%s', %s, '%s', '%s', '%s')",
+                name, price, duration, category == null ? "" : category, description
         );
 
         int result = DB.executeUpdate(sql);
@@ -207,11 +282,20 @@ public class ServiceWindow {
         }
     }
 
+    private void editService(Service service) {
+        txtName.setText(service.getServiceName());
+        txtPrice.setText(String.valueOf(service.getPrice()));
+        txtDuration.setText(service.getDuration());
+        cmbCategory.setValue(service.getCategory());
+
+        showAlert("Edit Mode", "Edit service details and click 'Add Service' to update");
+    }
+
     private void deleteService(Service service) {
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
         alert.setTitle("Confirm Delete");
-        alert.setHeaderText("Are you sure you want to delete this service?");
-        alert.setContentText("Service: " + service.getServiceName());
+        alert.setHeaderText("Delete Service");
+        alert.setContentText("Are you sure you want to delete service " + service.getServiceName() + "?");
 
         alert.showAndWait().ifPresent(response -> {
             if (response == ButtonType.OK) {
@@ -228,6 +312,9 @@ public class ServiceWindow {
     private void clearFields() {
         txtName.clear();
         txtPrice.clear();
+        txtDuration.clear();
+        txtDescription.clear();
+        cmbCategory.setValue(null);
     }
 
     private void showAlert(String title, String message) {
@@ -242,15 +329,25 @@ public class ServiceWindow {
         private int serviceId;
         private String serviceName;
         private double price;
+        private String duration;
+        private String category;
+        private int usageCount;
 
-        public Service(int serviceId, String serviceName, double price) {
+        public Service(int serviceId, String serviceName, double price,
+                       String duration, String category, int usageCount) {
             this.serviceId = serviceId;
             this.serviceName = serviceName;
             this.price = price;
+            this.duration = duration;
+            this.category = category;
+            this.usageCount = usageCount;
         }
 
         public int getServiceId() { return serviceId; }
         public String getServiceName() { return serviceName; }
         public double getPrice() { return price; }
+        public String getDuration() { return duration; }
+        public String getCategory() { return category; }
+        public int getUsageCount() { return usageCount; }
     }
 }

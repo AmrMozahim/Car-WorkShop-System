@@ -12,15 +12,13 @@ public class DB {
         try {
             if (connection == null || connection.isClosed()) {
                 Class.forName("com.mysql.cj.jdbc.Driver");
-                String url = "jdbc:mysql://localhost:3306/car_workship_db";
+                String url = "jdbc:mysql://localhost:3306/car_workship_dp";
                 String user = "root";
-                String pass = "Amr1135@mr";
+                String pass = "";
                 connection = DriverManager.getConnection(url, user, pass);
-                System.out.println("Database connection successful");
             }
         } catch (Exception e) {
-            System.out.println("Database connection error: " + e.getMessage());
-            e.printStackTrace();
+            System.out.println("Database error: " + e.getMessage());
         }
         return connection;
     }
@@ -31,8 +29,7 @@ public class DB {
             Statement stmt = conn.createStatement();
             return stmt.executeQuery(sql);
         } catch (Exception e) {
-            System.out.println("Query execution error: " + sql);
-            e.printStackTrace();
+            System.out.println("Query error: " + e.getMessage());
             return null;
         }
     }
@@ -41,25 +38,20 @@ public class DB {
         try {
             Connection conn = getConnection();
             Statement stmt = conn.createStatement();
-            int result = stmt.executeUpdate(sql);
-            System.out.println("Operation executed: " + sql);
-            return result;
+            return stmt.executeUpdate(sql);
         } catch (Exception e) {
-            System.out.println("Update execution error: " + sql);
-            e.printStackTrace();
+            System.out.println("Update error: " + e.getMessage());
             return 0;
         }
     }
 
+    // Methods for different tables
     public static ResultSet getCustomers() {
         return executeQuery("SELECT * FROM customer ORDER BY full_name");
     }
 
-    public static ResultSet getInvoices() {
-        String sql = "SELECT s.*, c.full_name FROM salesinvoice s " +
-                "JOIN customer c ON s.customer_id = c.customer_id " +
-                "ORDER BY s.invoice_date DESC";
-        return executeQuery(sql);
+    public static ResultSet getVehicles() {
+        return executeQuery("SELECT * FROM vehicle ORDER BY plate_number");
     }
 
     public static ResultSet getServices() {
@@ -67,17 +59,11 @@ public class DB {
     }
 
     public static ResultSet getParts() {
-        String sql = "SELECT p.*, s.supplier_name FROM sparepart p " +
-                "LEFT JOIN supplier s ON p.supplier_id = s.supplier_id " +
-                "ORDER BY p.part_name";
-        return executeQuery(sql);
+        return executeQuery("SELECT * FROM sparepart ORDER BY part_name");
     }
 
-    public static ResultSet getVehicles() {
-        String sql = "SELECT v.*, c.full_name FROM vehicle v " +
-                "JOIN customer c ON v.customer_id = c.customer_id " +
-                "ORDER BY v.plate_number";
-        return executeQuery(sql);
+    public static ResultSet getInvoices() {
+        return executeQuery("SELECT * FROM salesinvoice ORDER BY invoice_date DESC");
     }
 
     public static ResultSet getMechanics() {
@@ -88,127 +74,34 @@ public class DB {
         return executeQuery("SELECT * FROM supplier ORDER BY supplier_name");
     }
 
+    // Statistics methods
     public static int getTotalCustomers() {
         try {
-            ResultSet rs = executeQuery("SELECT COUNT(*) as total FROM customer");
-            if (rs.next()) {
-                return rs.getInt("total");
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return 0;
-    }
-
-    public static int getTodayInvoicesCount() {
-        try {
-            String today = LocalDate.now().toString();
-            ResultSet rs = executeQuery("SELECT COUNT(*) as total FROM salesinvoice WHERE DATE(invoice_date) = '" + today + "'");
-            if (rs.next()) {
-                return rs.getInt("total");
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return 0;
+            ResultSet rs = executeQuery("SELECT COUNT(*) FROM customer");
+            return rs.next() ? rs.getInt(1) : 0;
+        } catch (Exception e) { return 0; }
     }
 
     public static double getTodayRevenue() {
         try {
             String today = LocalDate.now().toString();
-            ResultSet rs = executeQuery("SELECT SUM(total_amount) as total FROM salesinvoice WHERE DATE(invoice_date) = '" + today + "'");
-            if (rs.next()) {
-                return rs.getDouble("total");
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return 0.0;
+            ResultSet rs = executeQuery("SELECT SUM(total_amount) FROM salesinvoice WHERE DATE(invoice_date) = '" + today + "'");
+            return rs.next() ? rs.getDouble(1) : 0.0;
+        } catch (Exception e) { return 0.0; }
     }
 
-    public static int getTotalInvoices() {
+    public static int getVehiclesInService() {
         try {
-            ResultSet rs = executeQuery("SELECT COUNT(*) as total FROM salesinvoice");
-            if (rs.next()) {
-                return rs.getInt("total");
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return 0;
-    }
-
-    public static double getTotalRevenue() {
-        try {
-            ResultSet rs = executeQuery("SELECT SUM(total_amount) as total FROM salesinvoice");
-            if (rs.next()) {
-                return rs.getDouble("total");
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return 0.0;
-    }
-
-    public static int getTotalVehicles() {
-        try {
-            ResultSet rs = executeQuery("SELECT COUNT(*) as total FROM vehicle");
-            if (rs.next()) {
-                return rs.getInt("total");
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return 0;
+            String today = LocalDate.now().toString();
+            ResultSet rs = executeQuery("SELECT COUNT(*) FROM vehicle WHERE status = 'in_service'");
+            return rs.next() ? rs.getInt(1) : 0;
+        } catch (Exception e) { return 0; }
     }
 
     public static int getLowStockParts() {
         try {
-            ResultSet rs = executeQuery("SELECT COUNT(*) as total FROM sparepart WHERE quantity < 10");
-            if (rs.next()) {
-                return rs.getInt("total");
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return 0;
-    }
-
-    public static int getTotalServices() {
-        try {
-            ResultSet rs = executeQuery("SELECT COUNT(*) as total FROM service");
-            if (rs.next()) {
-                return rs.getInt("total");
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return 0;
-    }
-
-    public static int getVehiclesInWorkshop() {
-        try {
-            ResultSet rs = executeQuery("SELECT COUNT(DISTINCT v.vehicle_id) as total " +
-                    "FROM vehicle v " +
-                    "JOIN salesinvoice s ON v.customer_id = s.customer_id " +
-                    "WHERE DATE(s.invoice_date) = '" + LocalDate.now().toString() + "'");
-            if (rs.next()) {
-                return rs.getInt("total");
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return 0;
-    }
-
-    public static void closeConnection() {
-        try {
-            if (connection != null && !connection.isClosed()) {
-                connection.close();
-                System.out.println("Database connection closed");
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+            ResultSet rs = executeQuery("SELECT COUNT(*) FROM sparepart WHERE quantity < 10");
+            return rs.next() ? rs.getInt(1) : 0;
+        } catch (Exception e) { return 0; }
     }
 }

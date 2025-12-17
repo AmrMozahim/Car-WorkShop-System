@@ -24,60 +24,71 @@ public class CustomerWindow {
         BorderPane root = new BorderPane();
         root.getStyleClass().add("window-root");
 
-        VBox header = new VBox(10);
+        // Window Header
+        VBox header = new VBox(8);
         header.getStyleClass().add("window-header");
-        header.setPadding(new Insets(15));
+        header.setPadding(new Insets(20));
 
         Label title = new Label("Customer Management");
         title.getStyleClass().add("window-title");
 
-        Label subtitle = new Label("Manage customer information and add new customers");
+        Label subtitle = new Label("Manage customer information and relationships");
         subtitle.getStyleClass().add("window-subtitle");
 
         header.getChildren().addAll(title, subtitle);
         root.setTop(header);
 
+        // Window Content
         GridPane content = new GridPane();
         content.getStyleClass().add("window-content");
-        content.setPadding(new Insets(20));
-        content.setVgap(15);
-        content.setHgap(15);
+        content.setPadding(new Insets(25));
+        content.setVgap(20);
+        content.setHgap(20);
 
-        VBox formBox = new VBox(15);
+        // Left Side - Form
+        VBox formBox = new VBox(20);
         formBox.getStyleClass().add("form-box");
+        formBox.setPrefWidth(350);
 
         Label formTitle = new Label("Add New Customer");
         formTitle.getStyleClass().add("form-title");
 
-        VBox nameBox = new VBox(5);
+        // Name Field
+        VBox nameBox = new VBox(8);
+        nameBox.getStyleClass().add("form-group");
         Label lblName = new Label("Full Name *");
         lblName.getStyleClass().add("field-label");
         txtName.getStyleClass().add("field-input");
-        txtName.setPromptText("Enter full name");
+        txtName.setPromptText("Enter customer name");
         nameBox.getChildren().addAll(lblName, txtName);
 
-        VBox phoneBox = new VBox(5);
+        // Phone Field
+        VBox phoneBox = new VBox(8);
+        phoneBox.getStyleClass().add("form-group");
         Label lblPhone = new Label("Phone Number");
         lblPhone.getStyleClass().add("field-label");
         txtPhone.getStyleClass().add("field-input");
         txtPhone.setPromptText("Enter phone number");
         phoneBox.getChildren().addAll(lblPhone, txtPhone);
 
-        VBox emailBox = new VBox(5);
-        Label lblEmail = new Label("Email");
+        // Email Field
+        VBox emailBox = new VBox(8);
+        emailBox.getStyleClass().add("form-group");
+        Label lblEmail = new Label("Email Address");
         lblEmail.getStyleClass().add("field-label");
         txtEmail.getStyleClass().add("field-input");
         txtEmail.setPromptText("Enter email address");
         emailBox.getChildren().addAll(lblEmail, txtEmail);
 
-        HBox formButtons = new HBox(10);
+        // Form Buttons
+        HBox formButtons = new HBox(15);
         formButtons.getStyleClass().add("form-buttons");
 
         Button btnAdd = new Button("Add Customer");
         btnAdd.getStyleClass().add("btn-primary");
         btnAdd.setOnAction(e -> addCustomer());
 
-        Button btnClear = new Button("Clear Fields");
+        Button btnClear = new Button("Clear");
         btnClear.getStyleClass().add("btn-secondary");
         btnClear.setOnAction(e -> clearFields());
 
@@ -86,24 +97,29 @@ public class CustomerWindow {
         formBox.getChildren().addAll(formTitle, nameBox, phoneBox, emailBox, formButtons);
         content.add(formBox, 0, 0);
 
-        VBox tableBox = new VBox(10);
+        // Right Side - Table
+        VBox tableBox = new VBox(15);
         tableBox.getStyleClass().add("table-box");
 
+        // Table Header
         HBox tableHeader = new HBox();
-        tableHeader.getStyleClass().add("table-header");
+        tableHeader.getStyleClass().add("table-header-box");
 
         Label tableTitle = new Label("Customer List");
         tableTitle.getStyleClass().add("table-title");
 
-        Button btnRefresh = new Button("Refresh List");
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        Button btnRefresh = new Button("Refresh");
         btnRefresh.getStyleClass().add("btn-refresh");
         btnRefresh.setOnAction(e -> loadCustomers());
 
-        tableHeader.getChildren().addAll(tableTitle, btnRefresh);
-        HBox.setHgrow(tableTitle, Priority.ALWAYS);
+        tableHeader.getChildren().addAll(tableTitle, spacer, btnRefresh);
 
+        // Table
         createTable();
-        table.setPrefHeight(300);
+        table.setPrefHeight(400);
 
         tableBox.getChildren().addAll(tableHeader, table);
         content.add(tableBox, 1, 0);
@@ -111,7 +127,7 @@ public class CustomerWindow {
         root.setCenter(content);
 
         Scene scene = new Scene(root, 1000, 600);
-        scene.getStylesheets().add(getClass().getResource("style.css").toExternalForm());
+        scene.getStylesheets().add("style.css");
         stage.setScene(scene);
         stage.show();
 
@@ -123,7 +139,7 @@ public class CustomerWindow {
 
         TableColumn<Customer, Integer> colId = new TableColumn<>("ID");
         colId.setCellValueFactory(new PropertyValueFactory<>("customerId"));
-        colId.setPrefWidth(60);
+        colId.setPrefWidth(80);
 
         TableColumn<Customer, String> colName = new TableColumn<>("Name");
         colName.setCellValueFactory(new PropertyValueFactory<>("fullName"));
@@ -137,6 +153,7 @@ public class CustomerWindow {
         colEmail.setCellValueFactory(new PropertyValueFactory<>("email"));
         colEmail.setPrefWidth(200);
 
+        // Actions Column
         TableColumn<Customer, Void> colActions = new TableColumn<>("Actions");
         colActions.setPrefWidth(150);
         colActions.setCellFactory(param -> new TableCell<Customer, Void>() {
@@ -147,6 +164,9 @@ public class CustomerWindow {
                 btnEdit.getStyleClass().add("btn-table-edit");
                 btnDelete.getStyleClass().add("btn-table-delete");
 
+                HBox buttons = new HBox(8, btnEdit, btnDelete);
+                buttons.getStyleClass().add("table-actions");
+
                 btnEdit.setOnAction(e -> {
                     Customer customer = getTableView().getItems().get(getIndex());
                     editCustomer(customer);
@@ -156,6 +176,8 @@ public class CustomerWindow {
                     Customer customer = getTableView().getItems().get(getIndex());
                     deleteCustomer(customer);
                 });
+
+                setGraphic(buttons);
             }
 
             @Override
@@ -163,9 +185,6 @@ public class CustomerWindow {
                 super.updateItem(item, empty);
                 if (empty) {
                     setGraphic(null);
-                } else {
-                    HBox buttons = new HBox(5, btnEdit, btnDelete);
-                    setGraphic(buttons);
                 }
             }
         });
@@ -219,14 +238,15 @@ public class CustomerWindow {
     }
 
     private void editCustomer(Customer customer) {
+        // Open edit dialog
         showAlert("Edit", "Editing customer: " + customer.getFullName());
     }
 
     private void deleteCustomer(Customer customer) {
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
         alert.setTitle("Confirm Delete");
-        alert.setHeaderText("Are you sure you want to delete this customer?");
-        alert.setContentText("Customer: " + customer.getFullName() + "\nThis action cannot be undone!");
+        alert.setHeaderText("Delete Customer");
+        alert.setContentText("Are you sure you want to delete " + customer.getFullName() + "?\nThis action cannot be undone.");
 
         alert.showAndWait().ifPresent(response -> {
             if (response == ButtonType.OK) {
