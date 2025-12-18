@@ -1,14 +1,12 @@
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
-import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.*;
-import javafx.stage.Stage;
 import java.sql.ResultSet;
 
-public class SupplierWindow {
+public class SupplierTab extends BorderPane {
 
     private TableView<Supplier> table = new TableView<>();
     private ObservableList<Supplier> supplierList = FXCollections.observableArrayList();
@@ -18,12 +16,12 @@ public class SupplierWindow {
     private TextField txtEmail = new TextField();
     private TextArea txtAddress = new TextArea();
 
-    public void show() {
-        Stage stage = new Stage();
-        stage.setTitle("Supplier Management");
+    public SupplierTab() {
+        initialize();
+    }
 
-        BorderPane root = new BorderPane();
-        root.getStyleClass().add("window-root");
+    private void initialize() {
+        getStyleClass().add("window-root");
 
         // Header
         VBox header = new VBox(8);
@@ -37,7 +35,7 @@ public class SupplierWindow {
         subtitle.getStyleClass().add("window-subtitle");
 
         header.getChildren().addAll(title, subtitle);
-        root.setTop(header);
+        setTop(header);
 
         // Content
         GridPane content = new GridPane();
@@ -135,12 +133,7 @@ public class SupplierWindow {
         tableBox.getChildren().addAll(tableHeader, table);
         content.add(tableBox, 1, 0);
 
-        root.setCenter(content);
-
-        Scene scene = new Scene(root, 1000, 600);
-        scene.getStylesheets().add("style.css");
-        stage.setScene(scene);
-        stage.show();
+        setCenter(content);
 
         loadSuppliers();
     }

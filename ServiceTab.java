@@ -1,14 +1,12 @@
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
-import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.*;
-import javafx.stage.Stage;
 import java.sql.ResultSet;
 
-public class ServiceWindow {
+public class ServiceTab extends BorderPane {
 
     private TableView<Service> table = new TableView<>();
     private ObservableList<Service> serviceList = FXCollections.observableArrayList();
@@ -19,12 +17,12 @@ public class ServiceWindow {
     private TextArea txtDescription = new TextArea();
     private ComboBox<String> cmbCategory = new ComboBox<>();
 
-    public void show() {
-        Stage stage = new Stage();
-        stage.setTitle("Service Management");
+    public ServiceTab() {
+        initialize();
+    }
 
-        BorderPane root = new BorderPane();
-        root.getStyleClass().add("window-root");
+    private void initialize() {
+        getStyleClass().add("window-root");
 
         // Header
         VBox header = new VBox(8);
@@ -38,7 +36,7 @@ public class ServiceWindow {
         subtitle.getStyleClass().add("window-subtitle");
 
         header.getChildren().addAll(title, subtitle);
-        root.setTop(header);
+        setTop(header);
 
         // Content
         GridPane content = new GridPane();
@@ -145,12 +143,7 @@ public class ServiceWindow {
         tableBox.getChildren().addAll(tableHeader, table);
         content.add(tableBox, 1, 0);
 
-        root.setCenter(content);
-
-        Scene scene = new Scene(root, 1000, 650);
-        scene.getStylesheets().add("style.css");
-        stage.setScene(scene);
-        stage.show();
+        setCenter(content);
 
         loadServices();
     }

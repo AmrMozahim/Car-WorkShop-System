@@ -1,14 +1,12 @@
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
-import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.*;
-import javafx.stage.Stage;
 import java.sql.ResultSet;
 
-public class PartsWindow {
+public class PartsTab extends BorderPane {
 
     private TableView<Part> table = new TableView<>();
     private ObservableList<Part> partList = FXCollections.observableArrayList();
@@ -20,12 +18,12 @@ public class PartsWindow {
     private ComboBox<String> cmbSupplier = new ComboBox<>();
     private ComboBox<String> cmbCategory = new ComboBox<>();
 
-    public void show() {
-        Stage stage = new Stage();
-        stage.setTitle("Parts Management");
+    public PartsTab() {
+        initialize();
+    }
 
-        BorderPane root = new BorderPane();
-        root.getStyleClass().add("window-root");
+    private void initialize() {
+        getStyleClass().add("window-root");
 
         // Header
         VBox header = new VBox(8);
@@ -39,7 +37,7 @@ public class PartsWindow {
         subtitle.getStyleClass().add("window-subtitle");
 
         header.getChildren().addAll(title, subtitle);
-        root.setTop(header);
+        setTop(header);
 
         // Content
         GridPane content = new GridPane();
@@ -160,12 +158,7 @@ public class PartsWindow {
         tableBox.getChildren().addAll(tableHeader, table);
         content.add(tableBox, 1, 0);
 
-        root.setCenter(content);
-
-        Scene scene = new Scene(root, 1100, 650);
-        scene.getStylesheets().add("style.css");
-        stage.setScene(scene);
-        stage.show();
+        setCenter(content);
 
         loadParts();
     }

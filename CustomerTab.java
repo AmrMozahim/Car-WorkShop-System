@@ -1,14 +1,12 @@
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
-import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.*;
-import javafx.stage.Stage;
 import java.sql.ResultSet;
 
-public class CustomerWindow {
+public class CustomerTab extends BorderPane {
 
     private TableView<Customer> table = new TableView<>();
     private ObservableList<Customer> customerList = FXCollections.observableArrayList();
@@ -17,14 +15,14 @@ public class CustomerWindow {
     private TextField txtPhone = new TextField();
     private TextField txtEmail = new TextField();
 
-    public void show() {
-        Stage stage = new Stage();
-        stage.setTitle("Customer Management");
+    public CustomerTab() {
+        initialize();
+    }
 
-        BorderPane root = new BorderPane();
-        root.getStyleClass().add("window-root");
+    private void initialize() {
+        getStyleClass().add("window-root");
 
-        // Window Header
+        // Header
         VBox header = new VBox(8);
         header.getStyleClass().add("window-header");
         header.setPadding(new Insets(20));
@@ -36,9 +34,9 @@ public class CustomerWindow {
         subtitle.getStyleClass().add("window-subtitle");
 
         header.getChildren().addAll(title, subtitle);
-        root.setTop(header);
+        setTop(header);
 
-        // Window Content
+        // Content
         GridPane content = new GridPane();
         content.getStyleClass().add("window-content");
         content.setPadding(new Insets(25));
@@ -124,12 +122,7 @@ public class CustomerWindow {
         tableBox.getChildren().addAll(tableHeader, table);
         content.add(tableBox, 1, 0);
 
-        root.setCenter(content);
-
-        Scene scene = new Scene(root, 1000, 600);
-        scene.getStylesheets().add("style.css");
-        stage.setScene(scene);
-        stage.show();
+        setCenter(content);
 
         loadCustomers();
     }
@@ -238,8 +231,11 @@ public class CustomerWindow {
     }
 
     private void editCustomer(Customer customer) {
-        // Open edit dialog
-        showAlert("Edit", "Editing customer: " + customer.getFullName());
+        txtName.setText(customer.getFullName());
+        txtPhone.setText(customer.getPhone());
+        txtEmail.setText(customer.getEmail());
+
+        showAlert("Edit Mode", "Edit customer details and click 'Add Customer' to update");
     }
 
     private void deleteCustomer(Customer customer) {

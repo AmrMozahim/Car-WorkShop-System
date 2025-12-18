@@ -12,13 +12,14 @@ public class DB {
         try {
             if (connection == null || connection.isClosed()) {
                 Class.forName("com.mysql.cj.jdbc.Driver");
-                String url = "jdbc:mysql://localhost:3306/car_workship_dp";
+                String url = "jdbc:mysql://localhost:3306/car_workship_db";
                 String user = "root";
-                String pass = "";
+                String pass = "Amr1135@mr";
                 connection = DriverManager.getConnection(url, user, pass);
+                System.out.println("✓ Database connected!");
             }
         } catch (Exception e) {
-            System.out.println("Database error: " + e.getMessage());
+            System.out.println("✗ Database error: " + e.getMessage());
         }
         return connection;
     }
@@ -45,7 +46,7 @@ public class DB {
         }
     }
 
-    // Methods for different tables
+    // Basic table queries
     public static ResultSet getCustomers() {
         return executeQuery("SELECT * FROM customer ORDER BY full_name");
     }
@@ -74,7 +75,7 @@ public class DB {
         return executeQuery("SELECT * FROM supplier ORDER BY supplier_name");
     }
 
-    // Statistics methods
+    // Dashboard queries only
     public static int getTotalCustomers() {
         try {
             ResultSet rs = executeQuery("SELECT COUNT(*) FROM customer");
@@ -85,15 +86,16 @@ public class DB {
     public static double getTodayRevenue() {
         try {
             String today = LocalDate.now().toString();
-            ResultSet rs = executeQuery("SELECT SUM(total_amount) FROM salesinvoice WHERE DATE(invoice_date) = '" + today + "'");
+            ResultSet rs = executeQuery(
+                    "SELECT IFNULL(SUM(total_amount), 0) FROM salesinvoice WHERE DATE(invoice_date) = '" + today + "'"
+            );
             return rs.next() ? rs.getDouble(1) : 0.0;
         } catch (Exception e) { return 0.0; }
     }
 
     public static int getVehiclesInService() {
         try {
-            String today = LocalDate.now().toString();
-            ResultSet rs = executeQuery("SELECT COUNT(*) FROM vehicle WHERE status = 'in_service'");
+            ResultSet rs = executeQuery("SELECT COUNT(*) FROM vehicle");
             return rs.next() ? rs.getInt(1) : 0;
         } catch (Exception e) { return 0; }
     }
@@ -103,5 +105,12 @@ public class DB {
             ResultSet rs = executeQuery("SELECT COUNT(*) FROM sparepart WHERE quantity < 10");
             return rs.next() ? rs.getInt(1) : 0;
         } catch (Exception e) { return 0; }
+    }
+
+    public static ResultSet getRecentInvoices() {
+        return executeQuery(
+                "SELECT invoice_id, invoice_date, total_amount FROM salesinvoice " +
+                        "ORDER BY invoice_date DESC LIMIT 5"
+        );
     }
 }

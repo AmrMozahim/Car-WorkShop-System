@@ -1,14 +1,12 @@
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
-import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.*;
-import javafx.stage.Stage;
 import java.sql.ResultSet;
 
-public class VehicleWindow {
+public class VehicleTab extends BorderPane {
 
     private TableView<Vehicle> table = new TableView<>();
     private ObservableList<Vehicle> vehicleList = FXCollections.observableArrayList();
@@ -20,12 +18,12 @@ public class VehicleWindow {
     private TextField txtVIN = new TextField();
     private ComboBox<String> cmbType = new ComboBox<>();
 
-    public void show() {
-        Stage stage = new Stage();
-        stage.setTitle("Vehicle Management");
+    public VehicleTab() {
+        initialize();
+    }
 
-        BorderPane root = new BorderPane();
-        root.getStyleClass().add("window-root");
+    private void initialize() {
+        getStyleClass().add("window-root");
 
         // Header
         VBox header = new VBox(8);
@@ -39,7 +37,7 @@ public class VehicleWindow {
         subtitle.getStyleClass().add("window-subtitle");
 
         header.getChildren().addAll(title, subtitle);
-        root.setTop(header);
+        setTop(header);
 
         // Content
         GridPane content = new GridPane();
@@ -155,12 +153,7 @@ public class VehicleWindow {
         tableBox.getChildren().addAll(tableHeader, table);
         content.add(tableBox, 1, 0);
 
-        root.setCenter(content);
-
-        Scene scene = new Scene(root, 1100, 650);
-        scene.getStylesheets().add("style.css");
-        stage.setScene(scene);
-        stage.show();
+        setCenter(content);
 
         loadVehicles();
     }

@@ -1,15 +1,13 @@
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
-import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.*;
-import javafx.stage.Stage;
 import java.sql.ResultSet;
 import java.time.LocalDate;
 
-public class InvoiceWindow {
+public class InvoiceTab extends BorderPane {
 
     private TableView<Invoice> table = new TableView<>();
     private ObservableList<Invoice> invoiceList = FXCollections.observableArrayList();
@@ -22,12 +20,12 @@ public class InvoiceWindow {
     private DatePicker datePicker = new DatePicker(LocalDate.now());
     private TextArea txtNotes = new TextArea();
 
-    public void show() {
-        Stage stage = new Stage();
-        stage.setTitle("Invoice Management");
+    public InvoiceTab() {
+        initialize();
+    }
 
-        BorderPane root = new BorderPane();
-        root.getStyleClass().add("window-root");
+    private void initialize() {
+        getStyleClass().add("window-root");
 
         // Header
         VBox header = new VBox(8);
@@ -41,7 +39,7 @@ public class InvoiceWindow {
         subtitle.getStyleClass().add("window-subtitle");
 
         header.getChildren().addAll(title, subtitle);
-        root.setTop(header);
+        setTop(header);
 
         // Content
         GridPane content = new GridPane();
@@ -196,12 +194,7 @@ public class InvoiceWindow {
         tableBox.getChildren().addAll(tableHeader, table);
         content.add(tableBox, 1, 0);
 
-        root.setCenter(content);
-
-        Scene scene = new Scene(root, 1200, 700);
-        scene.getStylesheets().add("style.css");
-        stage.setScene(scene);
-        stage.show();
+        setCenter(content);
 
         loadInvoices();
     }
@@ -437,7 +430,6 @@ public class InvoiceWindow {
 
         int result = DB.executeUpdate(sql);
         if (result > 0) {
-            // Add services and parts to invoice_items table
             int invoiceId = getLastInsertId();
 
             for (String service : lstServices.getItems()) {
@@ -495,7 +487,6 @@ public class InvoiceWindow {
 
     private void printInvoice(Invoice invoice) {
         showAlert("Print", "Printing invoice #" + invoice.getInvoiceId());
-        // هنا يمكنك إضافة منطق طباعة الفاتورة
     }
 
     private void deleteInvoice(Invoice invoice) {
@@ -506,10 +497,8 @@ public class InvoiceWindow {
 
         alert.showAndWait().ifPresent(response -> {
             if (response == ButtonType.OK) {
-                // Delete related items first
                 DB.executeUpdate("DELETE FROM invoice_items WHERE invoice_id = " + invoice.getInvoiceId());
 
-                // Delete invoice
                 String sql = "DELETE FROM salesinvoice WHERE invoice_id = " + invoice.getInvoiceId();
                 int result = DB.executeUpdate(sql);
                 if (result > 0) {

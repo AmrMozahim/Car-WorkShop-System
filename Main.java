@@ -10,8 +10,16 @@ import javafx.stage.Stage;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.sql.ResultSet;
+import java.util.HashMap;
+import java.util.Map;
 
 public class Main extends Application {
+
+    private Map<String, Button> navButtons = new HashMap<>();
+    private Button activeNavButton = null;
+    private TabPane mainTabPane;
+    private Map<String, Tab> tabs = new HashMap<>();
 
     @Override
     public void start(Stage primaryStage) {
@@ -28,9 +36,9 @@ public class Main extends Application {
         // Logo and Title
         VBox logoContainer = new VBox(2);
         logoContainer.getStyleClass().add("logo-container");
-        Label logoText = new Label("CAR WORKSHOP PRO");
+        Label logoText = new Label("CAR WORKSHOP");
         logoText.getStyleClass().add("logo-text");
-        Label logoSubtext = new Label("Professional Vehicle Management");
+        Label logoSubtext = new Label("Vehicle Management");
         logoSubtext.getStyleClass().add("logo-subtext");
         logoContainer.getChildren().addAll(logoText, logoSubtext);
 
@@ -75,9 +83,10 @@ public class Main extends Application {
         Label dashTitle = new Label("DASHBOARD");
         dashTitle.getStyleClass().add("nav-title");
 
-        Button dashboardBtn = new Button("📊 Dashboard");
-        dashboardBtn.getStyleClass().add("nav-btn active");
-        dashboardBtn.setMaxWidth(Double.MAX_VALUE);
+        Button dashboardBtn = createNavButton("📊 Dashboard", "dashboard");
+        dashboardBtn.setOnAction(e -> showTab("dashboard"));
+        navButtons.put("dashboard", dashboardBtn);
+        setActiveNavButton(dashboardBtn);
 
         dashSection.getChildren().addAll(dashTitle, dashboardBtn);
 
@@ -87,20 +96,26 @@ public class Main extends Application {
         Label mgmtTitle = new Label("MANAGEMENT");
         mgmtTitle.getStyleClass().add("nav-title");
 
-        Button customersBtn = new Button("👥 Customers");
-        customersBtn.getStyleClass().add("nav-btn");
-        customersBtn.setMaxWidth(Double.MAX_VALUE);
-        customersBtn.setOnAction(e -> showCustomers());
+        Button customersBtn = createNavButton("👥 Customers", "customers");
+        customersBtn.setOnAction(e -> {
+            showTab("customers");
+            setActiveNavButton(customersBtn);
+        });
+        navButtons.put("customers", customersBtn);
 
-        Button vehiclesBtn = new Button("🚗 Vehicles");
-        vehiclesBtn.getStyleClass().add("nav-btn");
-        vehiclesBtn.setMaxWidth(Double.MAX_VALUE);
-        vehiclesBtn.setOnAction(e -> showVehicles());
+        Button vehiclesBtn = createNavButton("🚗 Vehicles", "vehicles");
+        vehiclesBtn.setOnAction(e -> {
+            showTab("vehicles");
+            setActiveNavButton(vehiclesBtn);
+        });
+        navButtons.put("vehicles", vehiclesBtn);
 
-        Button mechanicsBtn = new Button("🔧 Mechanics");
-        mechanicsBtn.getStyleClass().add("nav-btn");
-        mechanicsBtn.setMaxWidth(Double.MAX_VALUE);
-        mechanicsBtn.setOnAction(e -> showMechanics());
+        Button mechanicsBtn = createNavButton("🔧 Mechanics", "mechanics");
+        mechanicsBtn.setOnAction(e -> {
+            showTab("mechanics");
+            setActiveNavButton(mechanicsBtn);
+        });
+        navButtons.put("mechanics", mechanicsBtn);
 
         mgmtSection.getChildren().addAll(mgmtTitle, customersBtn, vehiclesBtn, mechanicsBtn);
 
@@ -110,30 +125,176 @@ public class Main extends Application {
         Label opsTitle = new Label("OPERATIONS");
         opsTitle.getStyleClass().add("nav-title");
 
-        Button servicesBtn = new Button("⚙️ Services");
-        servicesBtn.getStyleClass().add("nav-btn");
-        servicesBtn.setMaxWidth(Double.MAX_VALUE);
-        servicesBtn.setOnAction(e -> showServices());
+        Button servicesBtn = createNavButton("⚙️ Services", "services");
+        servicesBtn.setOnAction(e -> {
+            showTab("services");
+            setActiveNavButton(servicesBtn);
+        });
+        navButtons.put("services", servicesBtn);
 
-        Button partsBtn = new Button("📦 Parts");
-        partsBtn.getStyleClass().add("nav-btn");
-        partsBtn.setMaxWidth(Double.MAX_VALUE);
-        partsBtn.setOnAction(e -> showParts());
+        Button partsBtn = createNavButton("📦 Parts", "parts");
+        partsBtn.setOnAction(e -> {
+            showTab("parts");
+            setActiveNavButton(partsBtn);
+        });
+        navButtons.put("parts", partsBtn);
 
-        Button invoicesBtn = new Button("🧾 Invoices");
-        invoicesBtn.getStyleClass().add("nav-btn");
-        invoicesBtn.setMaxWidth(Double.MAX_VALUE);
-        invoicesBtn.setOnAction(e -> showInvoices());
+        Button invoicesBtn = createNavButton("🧾 Invoices", "invoices");
+        invoicesBtn.setOnAction(e -> {
+            showTab("invoices");
+            setActiveNavButton(invoicesBtn);
+        });
+        navButtons.put("invoices", invoicesBtn);
 
-        opsSection.getChildren().addAll(opsTitle, servicesBtn, partsBtn, invoicesBtn);
+        Button suppliersBtn = createNavButton("🏢 Suppliers", "suppliers");
+        suppliersBtn.setOnAction(e -> {
+            showTab("suppliers");
+            setActiveNavButton(suppliersBtn);
+        });
+        navButtons.put("suppliers", suppliersBtn);
 
-        sidebar.getChildren().addAll(dashSection, mgmtSection, opsSection);
+        opsSection.getChildren().addAll(opsTitle, servicesBtn, partsBtn, invoicesBtn, suppliersBtn);
+
+        // Reports Section
+        VBox reportsSection = new VBox(5);
+        reportsSection.getStyleClass().add("nav-section");
+        Label reportsTitle = new Label("REPORTS");
+        reportsTitle.getStyleClass().add("nav-title");
+
+        Button reportsBtn = createNavButton("📊 Reports", "reports");
+        reportsBtn.setOnAction(e -> {
+            showTab("reports");
+            setActiveNavButton(reportsBtn);
+        });
+        navButtons.put("reports", reportsBtn);
+
+        reportsSection.getChildren().addAll(reportsTitle, reportsBtn);
+
+        sidebar.getChildren().addAll(dashSection, mgmtSection, opsSection, reportsSection);
         root.setLeft(sidebar);
 
-        // === MAIN CONTENT ===
-        ScrollPane mainScroll = new ScrollPane();
-        mainScroll.getStyleClass().add("dashboard-scroll");
-        mainScroll.setFitToWidth(true);
+        // === MAIN CONTENT - TABPANE ===
+        mainTabPane = new TabPane();
+        mainTabPane.getStyleClass().add("tab-pane-modern");
+        mainTabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
+
+        // Create and add tabs
+        createTabs();
+
+        root.setCenter(mainTabPane);
+
+        Scene scene = new Scene(root, 1200, 700);
+        scene.getStylesheets().add("style.css");
+
+        primaryStage.setScene(scene);
+        primaryStage.show();
+
+        // Show dashboard by default
+        showTab("dashboard");
+    }
+
+    private void createTabs() {
+        // Dashboard Tab
+        Tab dashboardTab = new Tab("Dashboard");
+        ScrollPane dashboardContent = createDashboardContent();
+        dashboardTab.setContent(dashboardContent);
+        dashboardTab.setId("dashboard");
+        mainTabPane.getTabs().add(dashboardTab);
+        tabs.put("dashboard", dashboardTab);
+
+        // Customers Tab
+        Tab customersTab = new Tab("Customers");
+        CustomerTab customerTabContent = new CustomerTab();
+        customersTab.setContent(customerTabContent);
+        customersTab.setId("customers");
+        mainTabPane.getTabs().add(customersTab);
+        tabs.put("customers", customersTab);
+
+        // Vehicles Tab
+        Tab vehiclesTab = new Tab("Vehicles");
+        VehicleTab vehicleTabContent = new VehicleTab();
+        vehiclesTab.setContent(vehicleTabContent);
+        vehiclesTab.setId("vehicles");
+        mainTabPane.getTabs().add(vehiclesTab);
+        tabs.put("vehicles", vehiclesTab);
+
+        // Mechanics Tab
+        Tab mechanicsTab = new Tab("Mechanics");
+        MechanicTab mechanicTabContent = new MechanicTab();
+        mechanicsTab.setContent(mechanicTabContent);
+        mechanicsTab.setId("mechanics");
+        mainTabPane.getTabs().add(mechanicsTab);
+        tabs.put("mechanics", mechanicsTab);
+
+        // Services Tab
+        Tab servicesTab = new Tab("Services");
+        ServiceTab serviceTabContent = new ServiceTab();
+        servicesTab.setContent(serviceTabContent);
+        servicesTab.setId("services");
+        mainTabPane.getTabs().add(servicesTab);
+        tabs.put("services", servicesTab);
+
+        // Parts Tab
+        Tab partsTab = new Tab("Parts");
+        PartsTab partsTabContent = new PartsTab();
+        partsTab.setContent(partsTabContent);
+        partsTab.setId("parts");
+        mainTabPane.getTabs().add(partsTab);
+        tabs.put("parts", partsTab);
+
+        // Invoices Tab
+        Tab invoicesTab = new Tab("Invoices");
+        InvoiceTab invoiceTabContent = new InvoiceTab();
+        invoicesTab.setContent(invoiceTabContent);
+        invoicesTab.setId("invoices");
+        mainTabPane.getTabs().add(invoicesTab);
+        tabs.put("invoices", invoicesTab);
+
+        // Suppliers Tab
+        Tab suppliersTab = new Tab("Suppliers");
+        SupplierTab supplierTabContent = new SupplierTab();
+        suppliersTab.setContent(supplierTabContent);
+        suppliersTab.setId("suppliers");
+        mainTabPane.getTabs().add(suppliersTab);
+        tabs.put("suppliers", suppliersTab);
+
+        // Reports Tab
+        Tab reportsTab = new Tab("Reports");
+        ReportTab reportTabContent = new ReportTab();
+        reportsTab.setContent(reportTabContent);
+        reportsTab.setId("reports");
+        mainTabPane.getTabs().add(reportsTab);
+        tabs.put("reports", reportsTab);
+    }
+
+    private void showTab(String tabId) {
+        Tab tab = tabs.get(tabId);
+        if (tab != null) {
+            mainTabPane.getSelectionModel().select(tab);
+        }
+        setActiveNavButton(navButtons.get(tabId));
+    }
+
+    private Button createNavButton(String text, String id) {
+        Button btn = new Button(text);
+        btn.setId(id);
+        btn.getStyleClass().add("nav-btn");
+        btn.setMaxWidth(Double.MAX_VALUE);
+        btn.setAlignment(Pos.CENTER_LEFT);
+        return btn;
+    }
+
+    private void setActiveNavButton(Button button) {
+        if (activeNavButton != null) {
+            activeNavButton.getStyleClass().remove("active");
+        }
+        button.getStyleClass().add("active");
+        activeNavButton = button;
+    }
+
+    private ScrollPane createDashboardContent() {
+        ScrollPane scroll = new ScrollPane();
+        scroll.setFitToWidth(true);
 
         VBox dashboardContent = new VBox(25);
         dashboardContent.getStyleClass().add("dashboard-content");
@@ -169,10 +330,19 @@ public class Main extends Application {
         GridPane statsGrid = new GridPane();
         statsGrid.getStyleClass().add("stats-grid");
 
-        VBox stat1 = createStatCard("💰", "Today's Revenue", "$2,450.50", "+12.5%", "#2E86AB");
-        VBox stat2 = createStatCard("👥", "Total Customers", "127", "+8 new", "#A23B72");
-        VBox stat3 = createStatCard("🚗", "Vehicles in Service", "18", "4 completed", "#10b981");
-        VBox stat4 = createStatCard("📦", "Low Stock Items", "7", "Need reorder", "#f59e0b");
+        int totalCustomers = DB.getTotalCustomers();
+        double todayRevenue = DB.getTodayRevenue();
+        int vehiclesInService = DB.getVehiclesInService();
+        int lowStockParts = DB.getLowStockParts();
+
+        VBox stat1 = createStatCard("💰", "Today's Revenue", String.format("$%.2f", todayRevenue),
+                getRevenueTrend(todayRevenue), "#2E86AB");
+        VBox stat2 = createStatCard("👥", "Total Customers", String.valueOf(totalCustomers),
+                "+" + getNewCustomersToday() + " new", "#A23B72");
+        VBox stat3 = createStatCard("🚗", "Vehicles in Service", String.valueOf(vehiclesInService),
+                getCompletedToday() + " completed", "#10b981");
+        VBox stat4 = createStatCard("📦", "Low Stock Items", String.valueOf(lowStockParts),
+                "Need reorder", "#f59e0b");
 
         statsGrid.add(stat1, 0, 0);
         statsGrid.add(stat2, 1, 0);
@@ -200,13 +370,40 @@ public class Main extends Application {
         VBox activityList = new VBox(10);
         activityList.getStyleClass().add("activity-list");
 
-        // Activity Items
-        HBox activity1 = createActivityItem("🚗", "New vehicle registered", "10:30 AM");
-        HBox activity2 = createActivityItem("🧾", "Invoice #1025 created", "9:15 AM");
-        HBox activity3 = createActivityItem("🔧", "Oil change completed", "Yesterday");
-        HBox activity4 = createActivityItem("👤", "New customer added", "Yesterday");
+        try {
+            ResultSet rs = DB.executeQuery(
+                    "SELECT '🧾' as icon, CONCAT('Invoice #', invoice_id, ' created') as text, " +
+                            "DATE_FORMAT(invoice_date, '%h:%i %p') as time " +
+                            "FROM salesinvoice " +
+                            "WHERE DATE(invoice_date) = CURDATE() " +
+                            "UNION " +
+                            "SELECT '👤' as icon, CONCAT('New customer: ', full_name) as text, " +
+                            "DATE_FORMAT(NOW(), '%h:%i %p') as time " +
+                            "FROM customer " +
+                            "WHERE DATE(created_at) = CURDATE() " +
+                            "ORDER BY time DESC " +
+                            "LIMIT 4"
+            );
 
-        activityList.getChildren().addAll(activity1, activity2, activity3, activity4);
+            if (rs != null) {
+                while (rs.next()) {
+                    String icon = rs.getString("icon");
+                    String text = rs.getString("text");
+                    String time = rs.getString("time");
+                    HBox activityItem = createActivityItem(icon, text, time);
+                    activityList.getChildren().add(activityItem);
+                }
+            } else {
+                HBox activity1 = createActivityItem("🚗", "New vehicle registered", "10:30 AM");
+                HBox activity2 = createActivityItem("🧾", "Invoice #1025 created", "9:15 AM");
+                HBox activity3 = createActivityItem("🔧", "Oil change completed", "Yesterday");
+                HBox activity4 = createActivityItem("👤", "New customer added", "Yesterday");
+                activityList.getChildren().addAll(activity1, activity2, activity3, activity4);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
         recentSection.getChildren().addAll(sectionHeader, activityList);
 
         // Quick Actions
@@ -227,17 +424,17 @@ public class Main extends Application {
         actionsGrid.setVgap(15);
 
         Button action1 = createActionButton("➕ New Invoice", "🧾");
-        action1.setOnAction(e -> showInvoices());
+        action1.setOnAction(e -> showTab("invoices"));
         Button action2 = createActionButton("👥 Add Customer", "👤");
-        action2.setOnAction(e -> showCustomers());
+        action2.setOnAction(e -> showTab("customers"));
         Button action3 = createActionButton("🔧 Add Service", "⚙️");
-        action3.setOnAction(e -> showServices());
+        action3.setOnAction(e -> showTab("services"));
         Button action4 = createActionButton("📦 Manage Parts", "📦");
-        action4.setOnAction(e -> showParts());
+        action4.setOnAction(e -> showTab("parts"));
         Button action5 = createActionButton("🚗 Register Vehicle", "🚗");
-        action5.setOnAction(e -> showVehicles());
+        action5.setOnAction(e -> showTab("vehicles"));
         Button action6 = createActionButton("📊 View Reports", "📈");
-        action6.setOnAction(e -> showReports());
+        action6.setOnAction(e -> showTab("reports"));
 
         actionsGrid.add(action1, 0, 0);
         actionsGrid.add(action2, 1, 0);
@@ -249,20 +446,48 @@ public class Main extends Application {
         actionsSection.getChildren().addAll(actionsHeader, actionsGrid);
 
         dashboardContent.getChildren().addAll(welcomeCard, statsGrid, recentSection, actionsSection);
-        mainScroll.setContent(dashboardContent);
-        root.setCenter(mainScroll);
+        scroll.setContent(dashboardContent);
+        return scroll;
+    }
 
-        Scene scene = new Scene(root, 1200, 700);
-        scene.getStylesheets().add("style.css");
+    private String getRevenueTrend(double revenue) {
+        if (revenue > 1000) return "↗️ High";
+        else if (revenue > 500) return "→ Stable";
+        else return "↘️ Low";
+    }
 
-        primaryStage.setScene(scene);
-        primaryStage.show();
+    private int getNewCustomersToday() {
+        try {
+            ResultSet rs = DB.executeQuery(
+                    "SELECT COUNT(*) FROM customer WHERE DATE(created_at) = CURDATE()"
+            );
+            if (rs != null && rs.next()) {
+                return rs.getInt(1);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    private String getCompletedToday() {
+        try {
+            ResultSet rs = DB.executeQuery(
+                    "SELECT COUNT(*) FROM vehicle WHERE status = 'completed' AND DATE(updated_at) = CURDATE()"
+            );
+            if (rs != null && rs.next()) {
+                return String.valueOf(rs.getInt(1));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return "0";
     }
 
     private VBox createStatCard(String icon, String title, String value, String change, String color) {
         VBox card = new VBox(15);
         card.getStyleClass().add("stat-card");
-        card.setStyle("-fx-border-color: " + color + "40;");
+        card.setStyle("-fx-border-color: " + color + "40; -fx-background-color: " + color + "15;");
         card.setPadding(new Insets(20));
 
         HBox header = new HBox(15);
@@ -329,42 +554,6 @@ public class Main extends Application {
         btn.setGraphic(content);
 
         return btn;
-    }
-
-    // Navigation methods
-    private void showCustomers() {
-        CustomerWindow window = new CustomerWindow();
-        window.show();
-    }
-
-    private void showVehicles() {
-        VehicleWindow window = new VehicleWindow();
-        window.show();
-    }
-
-    private void showMechanics() {
-        MechanicWindow window = new MechanicWindow();
-        window.show();
-    }
-
-    private void showServices() {
-        ServiceWindow window = new ServiceWindow();
-        window.show();
-    }
-
-    private void showParts() {
-        PartsWindow window = new PartsWindow();
-        window.show();
-    }
-
-    private void showInvoices() {
-        InvoiceWindow window = new InvoiceWindow();
-        window.show();
-    }
-
-    private void showReports() {
-        ReportWindow window = new ReportWindow();
-        window.show();
     }
 
     public static void main(String[] args) {

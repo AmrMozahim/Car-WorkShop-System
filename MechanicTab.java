@@ -1,14 +1,12 @@
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
-import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.*;
-import javafx.stage.Stage;
 import java.sql.ResultSet;
 
-public class MechanicWindow {
+public class MechanicTab extends BorderPane {
 
     private TableView<Mechanic> table = new TableView<>();
     private ObservableList<Mechanic> mechanicList = FXCollections.observableArrayList();
@@ -20,12 +18,12 @@ public class MechanicWindow {
     private TextField txtExperience = new TextField();
     private ComboBox<String> cmbStatus = new ComboBox<>();
 
-    public void show() {
-        Stage stage = new Stage();
-        stage.setTitle("Mechanic Management");
+    public MechanicTab() {
+        initialize();
+    }
 
-        BorderPane root = new BorderPane();
-        root.getStyleClass().add("window-root");
+    private void initialize() {
+        getStyleClass().add("window-root");
 
         // Header
         VBox header = new VBox(8);
@@ -39,7 +37,7 @@ public class MechanicWindow {
         subtitle.getStyleClass().add("window-subtitle");
 
         header.getChildren().addAll(title, subtitle);
-        root.setTop(header);
+        setTop(header);
 
         // Content
         GridPane content = new GridPane();
@@ -156,12 +154,7 @@ public class MechanicWindow {
         tableBox.getChildren().addAll(tableHeader, table);
         content.add(tableBox, 1, 0);
 
-        root.setCenter(content);
-
-        Scene scene = new Scene(root, 1000, 650);
-        scene.getStylesheets().add("style.css");
-        stage.setScene(scene);
-        stage.show();
+        setCenter(content);
 
         loadMechanics();
     }

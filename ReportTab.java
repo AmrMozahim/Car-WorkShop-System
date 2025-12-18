@@ -1,28 +1,26 @@
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
-import javafx.scene.Scene;
 import javafx.scene.chart.*;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.*;
-import javafx.stage.Stage;
 import java.sql.ResultSet;
 import java.time.LocalDate;
 import java.text.DecimalFormat;
 
-public class ReportWindow {
+public class ReportTab extends BorderPane {
 
     private TabPane tabPane = new TabPane();
     private DatePicker startDate = new DatePicker(LocalDate.now().minusDays(30));
     private DatePicker endDate = new DatePicker(LocalDate.now());
 
-    public void show() {
-        Stage stage = new Stage();
-        stage.setTitle("Reports & Analytics");
+    public ReportTab() {
+        initialize();
+    }
 
-        BorderPane root = new BorderPane();
-        root.getStyleClass().add("window-root");
+    private void initialize() {
+        getStyleClass().add("window-root");
 
         // Header
         VBox header = new VBox(8);
@@ -53,7 +51,7 @@ public class ReportWindow {
         dateRange.getChildren().addAll(lblRange, startDate, new Label("to"), endDate, btnApply);
 
         header.getChildren().addAll(title, subtitle, dateRange);
-        root.setTop(header);
+        setTop(header);
 
         // TabPane
         tabPane.getStyleClass().add("tab-pane-modern");
@@ -71,12 +69,7 @@ public class ReportWindow {
         serviceTab.setClosable(false);
 
         tabPane.getTabs().addAll(salesTab, inventoryTab, customerTab, serviceTab);
-        root.setCenter(tabPane);
-
-        Scene scene = new Scene(root, 1000, 700);
-        scene.getStylesheets().add("style.css");
-        stage.setScene(scene);
-        stage.show();
+        setCenter(tabPane);
 
         refreshAllReports();
     }
