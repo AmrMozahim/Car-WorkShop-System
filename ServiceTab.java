@@ -13,9 +13,6 @@ public class ServiceTab extends BorderPane {
 
     private TextField txtName = new TextField();
     private TextField txtPrice = new TextField();
-    private TextField txtDuration = new TextField();
-    private TextArea txtDescription = new TextArea();
-    private ComboBox<String> cmbCategory = new ComboBox<>();
 
     public ServiceTab() {
         initialize();
@@ -71,35 +68,6 @@ public class ServiceTab extends BorderPane {
         txtPrice.setPromptText("50.00");
         priceBox.getChildren().addAll(lblPrice, txtPrice);
 
-        // Duration Field
-        VBox durationBox = new VBox(8);
-        durationBox.getStyleClass().add("form-group");
-        Label lblDuration = new Label("Duration (hours)");
-        lblDuration.getStyleClass().add("field-label");
-        txtDuration.getStyleClass().add("field-input");
-        txtDuration.setPromptText("1.5");
-        durationBox.getChildren().addAll(lblDuration, txtDuration);
-
-        // Category Field
-        VBox categoryBox = new VBox(8);
-        categoryBox.getStyleClass().add("form-group");
-        Label lblCategory = new Label("Category");
-        lblCategory.getStyleClass().add("field-label");
-        cmbCategory.getStyleClass().add("field-combo");
-        cmbCategory.getItems().addAll("Maintenance", "Repair", "Inspection", "Tire", "Electrical", "Body Work");
-        cmbCategory.setPromptText("Select category");
-        categoryBox.getChildren().addAll(lblCategory, cmbCategory);
-
-        // Description Field
-        VBox descBox = new VBox(8);
-        descBox.getStyleClass().add("form-group");
-        Label lblDesc = new Label("Description");
-        lblDesc.getStyleClass().add("field-label");
-        txtDescription.getStyleClass().add("field-textarea");
-        txtDescription.setPromptText("Service details...");
-        txtDescription.setPrefRowCount(3);
-        descBox.getChildren().addAll(lblDesc, txtDescription);
-
         // Buttons
         HBox formButtons = new HBox(15);
         formButtons.getStyleClass().add("form-buttons");
@@ -114,8 +82,7 @@ public class ServiceTab extends BorderPane {
 
         formButtons.getChildren().addAll(btnAdd, btnClear);
 
-        formBox.getChildren().addAll(formTitle, nameBox, priceBox, durationBox,
-                categoryBox, descBox, formButtons);
+        formBox.getChildren().addAll(formTitle, nameBox, priceBox, formButtons);
         content.add(formBox, 0, 0);
 
         // Right - Table
@@ -163,29 +130,17 @@ public class ServiceTab extends BorderPane {
         colPrice.setCellValueFactory(new PropertyValueFactory<>("price"));
         colPrice.setPrefWidth(100);
 
-        TableColumn<Service, String> colDuration = new TableColumn<>("Duration");
-        colDuration.setCellValueFactory(new PropertyValueFactory<>("duration"));
-        colDuration.setPrefWidth(100);
-
-        TableColumn<Service, String> colCategory = new TableColumn<>("Category");
-        colCategory.setCellValueFactory(new PropertyValueFactory<>("category"));
-        colCategory.setPrefWidth(120);
-
-        TableColumn<Service, Integer> colUsage = new TableColumn<>("Usage Count");
-        colUsage.setCellValueFactory(new PropertyValueFactory<>("usageCount"));
-        colUsage.setPrefWidth(100);
-
+        // Actions Column - تم الإصلاح هنا
         TableColumn<Service, Void> colActions = new TableColumn<>("Actions");
         colActions.setPrefWidth(120);
         colActions.setCellFactory(param -> new TableCell<Service, Void>() {
             private final Button btnEdit = new Button("Edit");
             private final Button btnDelete = new Button("Delete");
+            private final HBox buttons = new HBox(8, btnEdit, btnDelete);
 
             {
                 btnEdit.getStyleClass().add("btn-table-edit");
                 btnDelete.getStyleClass().add("btn-table-delete");
-
-                HBox buttons = new HBox(8, btnEdit, btnDelete);
                 buttons.getStyleClass().add("table-actions");
 
                 btnEdit.setOnAction(e -> {
@@ -197,8 +152,6 @@ public class ServiceTab extends BorderPane {
                     Service service = getTableView().getItems().get(getIndex());
                     deleteService(service);
                 });
-
-                setGraphic(buttons);
             }
 
             @Override
@@ -206,29 +159,30 @@ public class ServiceTab extends BorderPane {
                 super.updateItem(item, empty);
                 if (empty) {
                     setGraphic(null);
+                } else {
+                    setGraphic(buttons); // هذا هو الإصلاح
                 }
             }
         });
 
-        table.getColumns().addAll(colId, colName, colPrice, colDuration,
-                colCategory, colUsage, colActions);
+        table.getColumns().addAll(colId, colName, colPrice, colActions);
         table.setItems(serviceList);
+        table.setFixedCellSize(45);
     }
 
     private void loadServices() {
         serviceList.clear();
         try {
-            ResultSet rs = DB.getServices();
-            while (rs.next()) {
-                Service service = new Service(
-                        rs.getInt("service_id"),
-                        rs.getString("service_name"),
-                        rs.getDouble("price"),
-                        rs.getString("duration"),
-                        rs.getString("category"),
-                        rs.getInt("usage_count")
-                );
-                serviceList.add(service);
+            ResultSet rs = DB.executeQuery("SELECT service_id, service_name, price FROM service");
+            if (rs != null) {
+                while (rs.next()) {
+                    Service service = new Service(
+                            rs.getInt("service_id"),
+                            rs.getString("service_name"),
+                            rs.getDouble("price")
+                    );
+                    serviceList.add(service);
+                }
             }
         } catch (Exception e) {
             showAlert("Error", "Error loading services: " + e.getMessage());
@@ -238,9 +192,6 @@ public class ServiceTab extends BorderPane {
     private void addService() {
         String name = txtName.getText().trim();
         String price = txtPrice.getText().trim();
-        String duration = txtDuration.getText().trim();
-        String category = cmbCategory.getValue();
-        String description = txtDescription.getText().trim();
 
         if (name.isEmpty()) {
             showAlert("Warning", "Please enter service name");
@@ -260,9 +211,8 @@ public class ServiceTab extends BorderPane {
         }
 
         String sql = String.format(
-                "INSERT INTO service (service_name, price, duration, category, description) " +
-                        "VALUES ('%s', %s, '%s', '%s', '%s')",
-                name, price, duration, category == null ? "" : category, description
+                "INSERT INTO service (service_name, price) VALUES ('%s', %s)",
+                name, price
         );
 
         int result = DB.executeUpdate(sql);
@@ -278,8 +228,6 @@ public class ServiceTab extends BorderPane {
     private void editService(Service service) {
         txtName.setText(service.getServiceName());
         txtPrice.setText(String.valueOf(service.getPrice()));
-        txtDuration.setText(service.getDuration());
-        cmbCategory.setValue(service.getCategory());
 
         showAlert("Edit Mode", "Edit service details and click 'Add Service' to update");
     }
@@ -305,9 +253,6 @@ public class ServiceTab extends BorderPane {
     private void clearFields() {
         txtName.clear();
         txtPrice.clear();
-        txtDuration.clear();
-        txtDescription.clear();
-        cmbCategory.setValue(null);
     }
 
     private void showAlert(String title, String message) {
@@ -322,25 +267,15 @@ public class ServiceTab extends BorderPane {
         private int serviceId;
         private String serviceName;
         private double price;
-        private String duration;
-        private String category;
-        private int usageCount;
 
-        public Service(int serviceId, String serviceName, double price,
-                       String duration, String category, int usageCount) {
+        public Service(int serviceId, String serviceName, double price) {
             this.serviceId = serviceId;
             this.serviceName = serviceName;
             this.price = price;
-            this.duration = duration;
-            this.category = category;
-            this.usageCount = usageCount;
         }
 
         public int getServiceId() { return serviceId; }
         public String getServiceName() { return serviceName; }
         public double getPrice() { return price; }
-        public String getDuration() { return duration; }
-        public String getCategory() { return category; }
-        public int getUsageCount() { return usageCount; }
     }
 }

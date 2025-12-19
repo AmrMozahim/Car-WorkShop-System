@@ -46,71 +46,42 @@ public class DB {
         }
     }
 
-    // Basic table queries
-    public static ResultSet getCustomers() {
-        return executeQuery("SELECT * FROM customer ORDER BY full_name");
-    }
-
-    public static ResultSet getVehicles() {
-        return executeQuery("SELECT * FROM vehicle ORDER BY plate_number");
-    }
-
-    public static ResultSet getServices() {
-        return executeQuery("SELECT * FROM service ORDER BY service_name");
-    }
-
-    public static ResultSet getParts() {
-        return executeQuery("SELECT * FROM sparepart ORDER BY part_name");
-    }
-
-    public static ResultSet getInvoices() {
-        return executeQuery("SELECT * FROM salesinvoice ORDER BY invoice_date DESC");
-    }
-
-    public static ResultSet getMechanics() {
-        return executeQuery("SELECT * FROM mechanic ORDER BY name");
-    }
-
-    public static ResultSet getSuppliers() {
-        return executeQuery("SELECT * FROM supplier ORDER BY supplier_name");
-    }
-
-    // Dashboard queries only
+    // Dashboard queries
     public static int getTotalCustomers() {
         try {
             ResultSet rs = executeQuery("SELECT COUNT(*) FROM customer");
-            return rs.next() ? rs.getInt(1) : 0;
+            return (rs != null && rs.next()) ? rs.getInt(1) : 0;
         } catch (Exception e) { return 0; }
     }
 
     public static double getTodayRevenue() {
         try {
-            String today = LocalDate.now().toString();
             ResultSet rs = executeQuery(
-                    "SELECT IFNULL(SUM(total_amount), 0) FROM salesinvoice WHERE DATE(invoice_date) = '" + today + "'"
+                    "SELECT IFNULL(SUM(total_amount), 0) FROM salesinvoice WHERE DATE(invoice_date) = CURDATE()"
             );
-            return rs.next() ? rs.getDouble(1) : 0.0;
+            return (rs != null && rs.next()) ? rs.getDouble(1) : 0.0;
         } catch (Exception e) { return 0.0; }
     }
 
     public static int getVehiclesInService() {
         try {
             ResultSet rs = executeQuery("SELECT COUNT(*) FROM vehicle");
-            return rs.next() ? rs.getInt(1) : 0;
+            return (rs != null && rs.next()) ? rs.getInt(1) : 0;
         } catch (Exception e) { return 0; }
     }
 
     public static int getLowStockParts() {
         try {
             ResultSet rs = executeQuery("SELECT COUNT(*) FROM sparepart WHERE quantity < 10");
-            return rs.next() ? rs.getInt(1) : 0;
+            return (rs != null && rs.next()) ? rs.getInt(1) : 0;
         } catch (Exception e) { return 0; }
     }
 
-    public static ResultSet getRecentInvoices() {
-        return executeQuery(
-                "SELECT invoice_id, invoice_date, total_amount FROM salesinvoice " +
-                        "ORDER BY invoice_date DESC LIMIT 5"
-        );
+    // Helper method for last insert ID
+    public static int getLastInsertId() {
+        try {
+            ResultSet rs = executeQuery("SELECT LAST_INSERT_ID()");
+            return (rs != null && rs.next()) ? rs.getInt(1) : 0;
+        } catch (Exception e) { return 0; }
     }
 }

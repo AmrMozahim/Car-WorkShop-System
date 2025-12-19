@@ -42,14 +42,6 @@ public class Main extends Application {
         logoSubtext.getStyleClass().add("logo-subtext");
         logoContainer.getChildren().addAll(logoText, logoSubtext);
 
-        // Search Box
-        HBox searchBox = new HBox();
-        searchBox.getStyleClass().add("search-box");
-        TextField searchField = new TextField();
-        searchField.setPromptText("Search customers, vehicles, invoices...");
-        searchField.getStyleClass().add("search-field");
-        searchBox.getChildren().add(searchField);
-
         // User Box
         HBox userBox = new HBox(10);
         userBox.getStyleClass().add("user-box");
@@ -67,8 +59,8 @@ public class Main extends Application {
 
         userBox.getChildren().addAll(userAvatar, userInfo);
 
-        topNav.getChildren().addAll(logoContainer, searchBox, userBox);
-        HBox.setHgrow(searchBox, Priority.ALWAYS);
+        topNav.getChildren().addAll(logoContainer, userBox);
+        HBox.setHgrow(logoContainer, Priority.ALWAYS);
 
         root.setTop(topNav);
 
@@ -187,6 +179,7 @@ public class Main extends Application {
         scene.getStylesheets().add("style.css");
 
         primaryStage.setScene(scene);
+        primaryStage.setMaximized(true);
         primaryStage.show();
 
         // Show dashboard by default
@@ -195,74 +188,84 @@ public class Main extends Application {
 
     private void createTabs() {
         // Dashboard Tab
-        Tab dashboardTab = new Tab("Dashboard");
+        Tab dashboardTab = new Tab();
+        dashboardTab.setId("dashboard");
+        dashboardTab.setClosable(false);
+
         ScrollPane dashboardContent = createDashboardContent();
         dashboardTab.setContent(dashboardContent);
-        dashboardTab.setId("dashboard");
         mainTabPane.getTabs().add(dashboardTab);
         tabs.put("dashboard", dashboardTab);
 
         // Customers Tab
-        Tab customersTab = new Tab("Customers");
+        Tab customersTab = new Tab();
+        customersTab.setId("customers");
+        customersTab.setClosable(false);
         CustomerTab customerTabContent = new CustomerTab();
         customersTab.setContent(customerTabContent);
-        customersTab.setId("customers");
         mainTabPane.getTabs().add(customersTab);
         tabs.put("customers", customersTab);
 
         // Vehicles Tab
-        Tab vehiclesTab = new Tab("Vehicles");
+        Tab vehiclesTab = new Tab();
+        vehiclesTab.setId("vehicles");
+        vehiclesTab.setClosable(false);
         VehicleTab vehicleTabContent = new VehicleTab();
         vehiclesTab.setContent(vehicleTabContent);
-        vehiclesTab.setId("vehicles");
         mainTabPane.getTabs().add(vehiclesTab);
         tabs.put("vehicles", vehiclesTab);
 
         // Mechanics Tab
-        Tab mechanicsTab = new Tab("Mechanics");
+        Tab mechanicsTab = new Tab();
+        mechanicsTab.setId("mechanics");
+        mechanicsTab.setClosable(false);
         MechanicTab mechanicTabContent = new MechanicTab();
         mechanicsTab.setContent(mechanicTabContent);
-        mechanicsTab.setId("mechanics");
         mainTabPane.getTabs().add(mechanicsTab);
         tabs.put("mechanics", mechanicsTab);
 
         // Services Tab
-        Tab servicesTab = new Tab("Services");
+        Tab servicesTab = new Tab();
+        servicesTab.setId("services");
+        servicesTab.setClosable(false);
         ServiceTab serviceTabContent = new ServiceTab();
         servicesTab.setContent(serviceTabContent);
-        servicesTab.setId("services");
         mainTabPane.getTabs().add(servicesTab);
         tabs.put("services", servicesTab);
 
         // Parts Tab
-        Tab partsTab = new Tab("Parts");
+        Tab partsTab = new Tab();
+        partsTab.setId("parts");
+        partsTab.setClosable(false);
         PartsTab partsTabContent = new PartsTab();
         partsTab.setContent(partsTabContent);
-        partsTab.setId("parts");
         mainTabPane.getTabs().add(partsTab);
         tabs.put("parts", partsTab);
 
         // Invoices Tab
-        Tab invoicesTab = new Tab("Invoices");
+        Tab invoicesTab = new Tab();
+        invoicesTab.setId("invoices");
+        invoicesTab.setClosable(false);
         InvoiceTab invoiceTabContent = new InvoiceTab();
         invoicesTab.setContent(invoiceTabContent);
-        invoicesTab.setId("invoices");
         mainTabPane.getTabs().add(invoicesTab);
         tabs.put("invoices", invoicesTab);
 
         // Suppliers Tab
-        Tab suppliersTab = new Tab("Suppliers");
+        Tab suppliersTab = new Tab();
+        suppliersTab.setId("suppliers");
+        suppliersTab.setClosable(false);
         SupplierTab supplierTabContent = new SupplierTab();
         suppliersTab.setContent(supplierTabContent);
-        suppliersTab.setId("suppliers");
         mainTabPane.getTabs().add(suppliersTab);
         tabs.put("suppliers", suppliersTab);
 
         // Reports Tab
-        Tab reportsTab = new Tab("Reports");
+        Tab reportsTab = new Tab();
+        reportsTab.setId("reports");
+        reportsTab.setClosable(false);
         ReportTab reportTabContent = new ReportTab();
         reportsTab.setContent(reportTabContent);
-        reportsTab.setId("reports");
         mainTabPane.getTabs().add(reportsTab);
         tabs.put("reports", reportsTab);
     }
@@ -338,9 +341,9 @@ public class Main extends Application {
         VBox stat1 = createStatCard("💰", "Today's Revenue", String.format("$%.2f", todayRevenue),
                 getRevenueTrend(todayRevenue), "#2E86AB");
         VBox stat2 = createStatCard("👥", "Total Customers", String.valueOf(totalCustomers),
-                "+" + getNewCustomersToday() + " new", "#A23B72");
+                "", "#A23B72");
         VBox stat3 = createStatCard("🚗", "Vehicles in Service", String.valueOf(vehiclesInService),
-                getCompletedToday() + " completed", "#10b981");
+                "", "#10b981");
         VBox stat4 = createStatCard("📦", "Low Stock Items", String.valueOf(lowStockParts),
                 "Need reorder", "#f59e0b");
 
@@ -353,7 +356,7 @@ public class Main extends Application {
         GridPane.setHgrow(stat3, Priority.ALWAYS);
         GridPane.setHgrow(stat4, Priority.ALWAYS);
 
-        // Recent Activity
+        // Recent Activity (using only invoices - no customer created_at)
         VBox recentSection = new VBox(15);
         recentSection.getStyleClass().add("recent-section");
 
@@ -365,6 +368,7 @@ public class Main extends Application {
         HBox.setHgrow(spacer2, Priority.ALWAYS);
         Button viewAllBtn = new Button("View All →");
         viewAllBtn.getStyleClass().add("view-all-btn");
+        viewAllBtn.setOnAction(e -> showTab("invoices"));
         sectionHeader.getChildren().addAll(recentTitle, spacer2, viewAllBtn);
 
         VBox activityList = new VBox(10);
@@ -376,12 +380,7 @@ public class Main extends Application {
                             "DATE_FORMAT(invoice_date, '%h:%i %p') as time " +
                             "FROM salesinvoice " +
                             "WHERE DATE(invoice_date) = CURDATE() " +
-                            "UNION " +
-                            "SELECT '👤' as icon, CONCAT('New customer: ', full_name) as text, " +
-                            "DATE_FORMAT(NOW(), '%h:%i %p') as time " +
-                            "FROM customer " +
-                            "WHERE DATE(created_at) = CURDATE() " +
-                            "ORDER BY time DESC " +
+                            "ORDER BY invoice_date DESC " +
                             "LIMIT 4"
             );
 
@@ -393,12 +392,12 @@ public class Main extends Application {
                     HBox activityItem = createActivityItem(icon, text, time);
                     activityList.getChildren().add(activityItem);
                 }
-            } else {
-                HBox activity1 = createActivityItem("🚗", "New vehicle registered", "10:30 AM");
-                HBox activity2 = createActivityItem("🧾", "Invoice #1025 created", "9:15 AM");
-                HBox activity3 = createActivityItem("🔧", "Oil change completed", "Yesterday");
-                HBox activity4 = createActivityItem("👤", "New customer added", "Yesterday");
-                activityList.getChildren().addAll(activity1, activity2, activity3, activity4);
+            }
+
+            // If no recent invoices, show a message
+            if (activityList.getChildren().isEmpty()) {
+                HBox noActivity = createActivityItem("📝", "No recent activity today", "Check back later");
+                activityList.getChildren().add(noActivity);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -454,34 +453,6 @@ public class Main extends Application {
         if (revenue > 1000) return "↗️ High";
         else if (revenue > 500) return "→ Stable";
         else return "↘️ Low";
-    }
-
-    private int getNewCustomersToday() {
-        try {
-            ResultSet rs = DB.executeQuery(
-                    "SELECT COUNT(*) FROM customer WHERE DATE(created_at) = CURDATE()"
-            );
-            if (rs != null && rs.next()) {
-                return rs.getInt(1);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return 0;
-    }
-
-    private String getCompletedToday() {
-        try {
-            ResultSet rs = DB.executeQuery(
-                    "SELECT COUNT(*) FROM vehicle WHERE status = 'completed' AND DATE(updated_at) = CURDATE()"
-            );
-            if (rs != null && rs.next()) {
-                return String.valueOf(rs.getInt(1));
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return "0";
     }
 
     private VBox createStatCard(String icon, String title, String value, String change, String color) {

@@ -1,7 +1,6 @@
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
-import javafx.scene.chart.*;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.*;
@@ -95,14 +94,14 @@ public class ReportTab extends BorderPane {
                     "SELECT SUM(total_amount) as total FROM salesinvoice " +
                             "WHERE invoice_date BETWEEN '" + start + "' AND '" + end + "'"
             );
-            double totalRevenue = rs1.next() ? rs1.getDouble("total") : 0.0;
+            double totalRevenue = (rs1 != null && rs1.next()) ? rs1.getDouble("total") : 0.0;
 
             // Invoice Count
             ResultSet rs2 = DB.executeQuery(
                     "SELECT COUNT(*) as count FROM salesinvoice " +
                             "WHERE invoice_date BETWEEN '" + start + "' AND '" + end + "'"
             );
-            int invoiceCount = rs2.next() ? rs2.getInt("count") : 0;
+            int invoiceCount = (rs2 != null && rs2.next()) ? rs2.getInt("count") : 0;
 
             // Average Invoice
             double avgInvoice = invoiceCount > 0 ? totalRevenue / invoiceCount : 0.0;
@@ -115,7 +114,7 @@ public class ReportTab extends BorderPane {
                             "GROUP BY c.customer_id ORDER BY spent DESC LIMIT 1"
             );
             String topCustomer = "None";
-            if (rs3.next()) {
+            if (rs3 != null && rs3.next()) {
                 topCustomer = rs3.getString("full_name");
             }
 
@@ -133,50 +132,6 @@ public class ReportTab extends BorderPane {
             e.printStackTrace();
         }
 
-        // Revenue Chart
-        VBox chartBox = new VBox(15);
-        chartBox.getStyleClass().add("chart-card");
-        chartBox.setPadding(new Insets(20));
-
-        Label chartTitle = new Label("Revenue Trend");
-        chartTitle.getStyleClass().add("section-title");
-
-        // Simple bar chart (simulated)
-        VBox chartBars = new VBox(10);
-        chartBars.setPadding(new Insets(20, 0, 0, 0));
-
-        String[] days = {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
-        double[] revenues = {1250, 1800, 2200, 1950, 2400, 2100, 1650};
-
-        for (int i = 0; i < days.length; i++) {
-            HBox barRow = new HBox(15);
-            barRow.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
-
-            Label dayLabel = new Label(days[i]);
-            dayLabel.setPrefWidth(40);
-
-            Pane barBg = new Pane();
-            barBg.setStyle("-fx-background-color: #e2e8f0; -fx-background-radius: 3;");
-            barBg.setPrefWidth(200);
-            barBg.setPrefHeight(20);
-
-            Pane barFill = new Pane();
-            barFill.setStyle("-fx-background-color: #2E86AB; -fx-background-radius: 3;");
-            double width = (revenues[i] / 2500) * 190;
-            barFill.setPrefWidth(width);
-            barFill.setPrefHeight(18);
-
-            StackPane barStack = new StackPane(barBg, barFill);
-
-            Label valueLabel = new Label("$" + formatCurrency(revenues[i]));
-            valueLabel.setStyle("-fx-font-weight: bold;");
-
-            barRow.getChildren().addAll(dayLabel, barStack, valueLabel);
-            chartBars.getChildren().add(barRow);
-        }
-
-        chartBox.getChildren().addAll(chartTitle, chartBars);
-
         // Recent Invoices Table
         VBox tableBox = new VBox(15);
         tableBox.getStyleClass().add("table-box");
@@ -189,19 +144,21 @@ public class ReportTab extends BorderPane {
 
         try {
             ResultSet rs = DB.executeQuery(
-                    "SELECT s.invoice_id, c.full_name, s.invoice_date, s.total_amount, s.status " +
+                    "SELECT s.invoice_id, c.full_name, s.invoice_date, s.total_amount " +
                             "FROM salesinvoice s JOIN customer c ON s.customer_id = c.customer_id " +
                             "ORDER BY s.invoice_date DESC LIMIT 10"
             );
 
-            while (rs.next()) {
-                recentList.add(new RecentInvoice(
-                        rs.getInt("invoice_id"),
-                        rs.getString("full_name"),
-                        rs.getString("invoice_date"),
-                        rs.getDouble("total_amount"),
-                        rs.getString("status")
-                ));
+            if (rs != null) {
+                while (rs.next()) {
+                    recentList.add(new RecentInvoice(
+                            rs.getInt("invoice_id"),
+                            rs.getString("full_name"),
+                            rs.getString("invoice_date"),
+                            rs.getDouble("total_amount"),
+                            "Completed"
+                    ));
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -233,17 +190,7 @@ public class ReportTab extends BorderPane {
 
         tableBox.getChildren().addAll(tableTitle, recentTable);
 
-        // Export Button
-        HBox exportBox = new HBox();
-        exportBox.setAlignment(javafx.geometry.Pos.CENTER_RIGHT);
-
-        Button btnExport = new Button("Export Report");
-        btnExport.getStyleClass().add("btn-primary");
-        btnExport.setOnAction(e -> exportReport("sales"));
-
-        exportBox.getChildren().add(btnExport);
-
-        content.getChildren().addAll(statsGrid, chartBox, tableBox, exportBox);
+        content.getChildren().addAll(statsGrid, tableBox);
         scroll.setContent(content);
 
         return scroll;
@@ -264,31 +211,20 @@ public class ReportTab extends BorderPane {
         try {
             // Total Parts
             ResultSet rs1 = DB.executeQuery("SELECT COUNT(*) as total FROM sparepart");
-            int totalParts = rs1.next() ? rs1.getInt("total") : 0;
+            int totalParts = (rs1 != null && rs1.next()) ? rs1.getInt("total") : 0;
 
             // Low Stock
             ResultSet rs2 = DB.executeQuery("SELECT COUNT(*) as low FROM sparepart WHERE quantity < 10");
-            int lowStock = rs2.next() ? rs2.getInt("low") : 0;
+            int lowStock = (rs2 != null && rs2.next()) ? rs2.getInt("low") : 0;
 
             // Total Value
             ResultSet rs3 = DB.executeQuery("SELECT SUM(quantity * price) as value FROM sparepart");
-            double totalValue = rs3.next() ? rs3.getDouble("value") : 0.0;
-
-            // Most Used Part
-            ResultSet rs4 = DB.executeQuery(
-                    "SELECT p.part_name, SUM(ii.quantity) as used " +
-                            "FROM invoice_items ii JOIN sparepart p ON ii.part_id = p.part_id " +
-                            "GROUP BY p.part_id ORDER BY used DESC LIMIT 1"
-            );
-            String topPart = "None";
-            if (rs4.next()) {
-                topPart = rs4.getString("part_name");
-            }
+            double totalValue = (rs3 != null && rs3.next()) ? rs3.getDouble("value") : 0.0;
 
             VBox stat1 = createReportStat("Total Parts", String.valueOf(totalParts), "#2E86AB");
             VBox stat2 = createReportStat("Low Stock", String.valueOf(lowStock), "#ef4444");
             VBox stat3 = createReportStat("Inventory Value", "$" + formatCurrency(totalValue), "#10b981");
-            VBox stat4 = createReportStat("Most Used", topPart, "#f59e0b");
+            VBox stat4 = createReportStat("Most Used", "Check Parts", "#f59e0b");
 
             statsGrid.add(stat1, 0, 0);
             statsGrid.add(stat2, 1, 0);
@@ -311,17 +247,19 @@ public class ReportTab extends BorderPane {
 
         try {
             ResultSet rs = DB.executeQuery(
-                    "SELECT part_name, quantity, price, min_stock FROM sparepart " +
-                            "WHERE quantity < min_stock OR quantity < 10 ORDER BY quantity"
+                    "SELECT part_name, quantity, price FROM sparepart " +
+                            "WHERE quantity < 10 ORDER BY quantity"
             );
 
-            while (rs.next()) {
-                lowStockList.add(new LowStockItem(
-                        rs.getString("part_name"),
-                        rs.getInt("quantity"),
-                        rs.getDouble("price"),
-                        rs.getInt("min_stock")
-                ));
+            if (rs != null) {
+                while (rs.next()) {
+                    lowStockList.add(new LowStockItem(
+                            rs.getString("part_name"),
+                            rs.getInt("quantity"),
+                            rs.getDouble("price"),
+                            10
+                    ));
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -349,51 +287,7 @@ public class ReportTab extends BorderPane {
 
         tableBox.getChildren().addAll(tableTitle, lowStockTable);
 
-        // Category Breakdown
-        VBox catBox = new VBox(15);
-        catBox.getStyleClass().add("chart-card");
-        catBox.setPadding(new Insets(20));
-
-        Label catTitle = new Label("Parts by Category");
-        catTitle.getStyleClass().add("section-title");
-
-        // Simple category chart
-        VBox catBars = new VBox(10);
-        catBars.setPadding(new Insets(20, 0, 0, 0));
-
-        String[] categories = {"Engine", "Brakes", "Filters", "Electrical", "Other"};
-        int[] counts = {45, 32, 28, 21, 15};
-
-        for (int i = 0; i < categories.length; i++) {
-            HBox barRow = new HBox(15);
-            barRow.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
-
-            Label catLabel = new Label(categories[i]);
-            catLabel.setPrefWidth(80);
-
-            Pane barBg = new Pane();
-            barBg.setStyle("-fx-background-color: #e2e8f0; -fx-background-radius: 3;");
-            barBg.setPrefWidth(200);
-            barBg.setPrefHeight(20);
-
-            Pane barFill = new Pane();
-            barFill.setStyle("-fx-background-color: #A23B72; -fx-background-radius: 3;");
-            double width = (counts[i] / 50.0) * 190;
-            barFill.setPrefWidth(width);
-            barFill.setPrefHeight(18);
-
-            StackPane barStack = new StackPane(barBg, barFill);
-
-            Label countLabel = new Label(String.valueOf(counts[i]));
-            countLabel.setStyle("-fx-font-weight: bold;");
-
-            barRow.getChildren().addAll(catLabel, barStack, countLabel);
-            catBars.getChildren().add(barRow);
-        }
-
-        catBox.getChildren().addAll(catTitle, catBars);
-
-        content.getChildren().addAll(statsGrid, tableBox, catBox);
+        content.getChildren().addAll(statsGrid, tableBox);
         scroll.setContent(content);
 
         return scroll;
@@ -414,22 +308,15 @@ public class ReportTab extends BorderPane {
         try {
             // Total Customers
             ResultSet rs1 = DB.executeQuery("SELECT COUNT(*) as total FROM customer");
-            int totalCustomers = rs1.next() ? rs1.getInt("total") : 0;
+            int totalCustomers = (rs1 != null && rs1.next()) ? rs1.getInt("total") : 0;
 
-            // New This Month
-            String thisMonth = LocalDate.now().withDayOfMonth(1).toString();
-            ResultSet rs2 = DB.executeQuery(
-                    "SELECT COUNT(*) as new FROM customer WHERE created_at >= '" + thisMonth + "'"
-            );
-            int newCustomers = rs2.next() ? rs2.getInt("new") : 0;
-
-            // Active Customers
+            // Active Customers (last 30 days)
             String last30Days = LocalDate.now().minusDays(30).toString();
             ResultSet rs3 = DB.executeQuery(
                     "SELECT COUNT(DISTINCT customer_id) as active FROM salesinvoice " +
                             "WHERE invoice_date >= '" + last30Days + "'"
             );
-            int activeCustomers = rs3.next() ? rs3.getInt("active") : 0;
+            int activeCustomers = (rs3 != null && rs3.next()) ? rs3.getInt("active") : 0;
 
             // Top Spender
             ResultSet rs4 = DB.executeQuery(
@@ -439,20 +326,18 @@ public class ReportTab extends BorderPane {
             );
             String topSpender = "None";
             double topAmount = 0.0;
-            if (rs4.next()) {
+            if (rs4 != null && rs4.next()) {
                 topSpender = rs4.getString("full_name");
                 topAmount = rs4.getDouble("spent");
             }
 
             VBox stat1 = createReportStat("Total Customers", String.valueOf(totalCustomers), "#2E86AB");
-            VBox stat2 = createReportStat("New This Month", String.valueOf(newCustomers), "#A23B72");
-            VBox stat3 = createReportStat("Active (30 days)", String.valueOf(activeCustomers), "#10b981");
-            VBox stat4 = createReportStat("Top Spender", topSpender + " ($" + formatCurrency(topAmount) + ")", "#f59e0b");
+            VBox stat2 = createReportStat("Active (30 days)", String.valueOf(activeCustomers), "#10b981");
+            VBox stat3 = createReportStat("Top Spender", topSpender + " ($" + formatCurrency(topAmount) + ")", "#f59e0b");
 
             statsGrid.add(stat1, 0, 0);
             statsGrid.add(stat2, 1, 0);
             statsGrid.add(stat3, 0, 1);
-            statsGrid.add(stat4, 1, 1);
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -475,12 +360,14 @@ public class ReportTab extends BorderPane {
                             "GROUP BY c.customer_id ORDER BY total DESC LIMIT 10"
             );
 
-            while (rs.next()) {
-                topList.add(new TopCustomer(
-                        rs.getString("full_name"),
-                        rs.getInt("invoices"),
-                        rs.getDouble("total")
-                ));
+            if (rs != null) {
+                while (rs.next()) {
+                    topList.add(new TopCustomer(
+                            rs.getString("full_name"),
+                            rs.getInt("invoices"),
+                            rs.getDouble("total")
+                    ));
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -525,93 +412,54 @@ public class ReportTab extends BorderPane {
         try {
             // Total Services
             ResultSet rs1 = DB.executeQuery("SELECT COUNT(*) as total FROM service");
-            int totalServices = rs1.next() ? rs1.getInt("total") : 0;
-
-            // Most Popular Service
-            ResultSet rs2 = DB.executeQuery(
-                    "SELECT s.service_name, COUNT(ii.service_id) as count " +
-                            "FROM invoice_items ii JOIN service s ON ii.service_id = s.service_id " +
-                            "GROUP BY s.service_id ORDER BY count DESC LIMIT 1"
-            );
-            String topService = "None";
-            int topCount = 0;
-            if (rs2.next()) {
-                topService = rs2.getString("service_name");
-                topCount = rs2.getInt("count");
-            }
-
-            // Services This Month
-            String thisMonth = LocalDate.now().withDayOfMonth(1).toString();
-            ResultSet rs3 = DB.executeQuery(
-                    "SELECT COUNT(*) as count FROM invoice_items ii " +
-                            "JOIN salesinvoice s ON ii.invoice_id = s.invoice_id " +
-                            "WHERE s.invoice_date >= '" + thisMonth + "' AND ii.service_id IS NOT NULL"
-            );
-            int servicesThisMonth = rs3.next() ? rs3.getInt("count") : 0;
-
-            // Revenue from Services
-            ResultSet rs4 = DB.executeQuery(
-                    "SELECT SUM(ii.price * ii.quantity) as revenue FROM invoice_items ii " +
-                            "JOIN salesinvoice s ON ii.invoice_id = s.invoice_id " +
-                            "WHERE ii.service_id IS NOT NULL AND s.invoice_date >= '" + thisMonth + "'"
-            );
-            double serviceRevenue = rs4.next() ? rs4.getDouble("revenue") : 0.0;
+            int totalServices = (rs1 != null && rs1.next()) ? rs1.getInt("total") : 0;
 
             VBox stat1 = createReportStat("Total Services", String.valueOf(totalServices), "#2E86AB");
-            VBox stat2 = createReportStat("Most Popular", topService + " (" + topCount + ")", "#A23B72");
-            VBox stat3 = createReportStat("This Month", String.valueOf(servicesThisMonth), "#10b981");
-            VBox stat4 = createReportStat("Service Revenue", "$" + formatCurrency(serviceRevenue), "#f59e0b");
+            VBox stat2 = createReportStat("Available Services", "View Below", "#A23B72");
 
             statsGrid.add(stat1, 0, 0);
             statsGrid.add(stat2, 1, 0);
-            statsGrid.add(stat3, 0, 1);
-            statsGrid.add(stat4, 1, 1);
 
         } catch (Exception e) {
             e.printStackTrace();
         }
 
-        // Top Services Table
+        // Services Table
         VBox tableBox = new VBox(15);
         tableBox.getStyleClass().add("table-box");
 
-        Label tableTitle = new Label("Most Popular Services");
+        Label tableTitle = new Label("Available Services");
         tableTitle.getStyleClass().add("table-title");
 
-        TableView<PopularService> serviceTable = new TableView<>();
-        ObservableList<PopularService> serviceList = FXCollections.observableArrayList();
+        TableView<ServiceData> serviceTable = new TableView<>();
+        ObservableList<ServiceData> serviceList = FXCollections.observableArrayList();
 
         try {
             ResultSet rs = DB.executeQuery(
-                    "SELECT s.service_name, s.price, COUNT(ii.service_id) as usage " +
-                            "FROM invoice_items ii JOIN service s ON ii.service_id = s.service_id " +
-                            "GROUP BY s.service_id ORDER BY usage DESC LIMIT 10"
+                    "SELECT service_name, price FROM service ORDER BY service_name"
             );
 
-            while (rs.next()) {
-                serviceList.add(new PopularService(
-                        rs.getString("service_name"),
-                        rs.getDouble("price"),
-                        rs.getInt("usage")
-                ));
+            if (rs != null) {
+                while (rs.next()) {
+                    serviceList.add(new ServiceData(
+                            rs.getString("service_name"),
+                            rs.getDouble("price")
+                    ));
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
 
-        TableColumn<PopularService, String> colName = new TableColumn<>("Service");
+        TableColumn<ServiceData, String> colName = new TableColumn<>("Service");
         colName.setCellValueFactory(new PropertyValueFactory<>("serviceName"));
         colName.setPrefWidth(200);
 
-        TableColumn<PopularService, Double> colPrice = new TableColumn<>("Price");
+        TableColumn<ServiceData, Double> colPrice = new TableColumn<>("Price");
         colPrice.setCellValueFactory(new PropertyValueFactory<>("price"));
         colPrice.setPrefWidth(100);
 
-        TableColumn<PopularService, Integer> colUsage = new TableColumn<>("Usage Count");
-        colUsage.setCellValueFactory(new PropertyValueFactory<>("usageCount"));
-        colUsage.setPrefWidth(100);
-
-        serviceTable.getColumns().addAll(colName, colPrice, colUsage);
+        serviceTable.getColumns().addAll(colName, colPrice);
         serviceTable.setItems(serviceList);
         serviceTable.setPrefHeight(200);
 
@@ -641,7 +489,6 @@ public class ReportTab extends BorderPane {
     }
 
     private void refreshAllReports() {
-        // Refresh all tab contents
         tabPane.getTabs().clear();
         tabPane.getTabs().addAll(
                 new Tab("Sales Report", createSalesReport()),
@@ -653,11 +500,6 @@ public class ReportTab extends BorderPane {
         for (Tab tab : tabPane.getTabs()) {
             tab.setClosable(false);
         }
-    }
-
-    private void exportReport(String type) {
-        showAlert("Export", type.substring(0, 1).toUpperCase() + type.substring(1) + " exported successfully");
-        // هنا يمكنك إضافة منطق تصدير التقارير إلى PDF أو Excel
     }
 
     private String formatCurrency(double amount) {
@@ -731,19 +573,16 @@ public class ReportTab extends BorderPane {
         public double getTotalSpent() { return totalSpent; }
     }
 
-    public static class PopularService {
+    public static class ServiceData {
         private String serviceName;
         private double price;
-        private int usageCount;
 
-        public PopularService(String serviceName, double price, int usageCount) {
+        public ServiceData(String serviceName, double price) {
             this.serviceName = serviceName;
             this.price = price;
-            this.usageCount = usageCount;
         }
 
         public String getServiceName() { return serviceName; }
         public double getPrice() { return price; }
-        public int getUsageCount() { return usageCount; }
     }
 }

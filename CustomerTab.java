@@ -146,18 +146,17 @@ public class CustomerTab extends BorderPane {
         colEmail.setCellValueFactory(new PropertyValueFactory<>("email"));
         colEmail.setPrefWidth(200);
 
-        // Actions Column
+        // Actions Column - تم الإصلاح هنا
         TableColumn<Customer, Void> colActions = new TableColumn<>("Actions");
         colActions.setPrefWidth(150);
         colActions.setCellFactory(param -> new TableCell<Customer, Void>() {
             private final Button btnEdit = new Button("Edit");
             private final Button btnDelete = new Button("Delete");
+            private final HBox buttons = new HBox(8, btnEdit, btnDelete);
 
             {
                 btnEdit.getStyleClass().add("btn-table-edit");
                 btnDelete.getStyleClass().add("btn-table-delete");
-
-                HBox buttons = new HBox(8, btnEdit, btnDelete);
                 buttons.getStyleClass().add("table-actions");
 
                 btnEdit.setOnAction(e -> {
@@ -169,8 +168,6 @@ public class CustomerTab extends BorderPane {
                     Customer customer = getTableView().getItems().get(getIndex());
                     deleteCustomer(customer);
                 });
-
-                setGraphic(buttons);
             }
 
             @Override
@@ -178,26 +175,31 @@ public class CustomerTab extends BorderPane {
                 super.updateItem(item, empty);
                 if (empty) {
                     setGraphic(null);
+                } else {
+                    setGraphic(buttons); // هذا هو الإصلاح
                 }
             }
         });
 
         table.getColumns().addAll(colId, colName, colPhone, colEmail, colActions);
         table.setItems(customerList);
+        table.setFixedCellSize(45);
     }
 
     private void loadCustomers() {
         customerList.clear();
         try {
-            ResultSet rs = DB.getCustomers();
-            while (rs.next()) {
-                Customer customer = new Customer(
-                        rs.getInt("customer_id"),
-                        rs.getString("full_name"),
-                        rs.getString("phone"),
-                        rs.getString("email")
-                );
-                customerList.add(customer);
+            ResultSet rs = DB.executeQuery("SELECT * FROM customer ORDER BY full_name");
+            if (rs != null) {
+                while (rs.next()) {
+                    Customer customer = new Customer(
+                            rs.getInt("customer_id"),
+                            rs.getString("full_name"),
+                            rs.getString("phone"),
+                            rs.getString("email")
+                    );
+                    customerList.add(customer);
+                }
             }
         } catch (Exception e) {
             showAlert("Error", "Error loading customers: " + e.getMessage());

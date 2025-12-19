@@ -13,10 +13,6 @@ public class MechanicTab extends BorderPane {
 
     private TextField txtName = new TextField();
     private TextField txtPhone = new TextField();
-    private TextField txtEmail = new TextField();
-    private ComboBox<String> cmbSpecialty = new ComboBox<>();
-    private TextField txtExperience = new TextField();
-    private ComboBox<String> cmbStatus = new ComboBox<>();
 
     public MechanicTab() {
         initialize();
@@ -33,7 +29,7 @@ public class MechanicTab extends BorderPane {
         Label title = new Label("Mechanic Management");
         title.getStyleClass().add("window-title");
 
-        Label subtitle = new Label("Manage workshop mechanics and assignments");
+        Label subtitle = new Label("Manage workshop mechanics");
         subtitle.getStyleClass().add("window-subtitle");
 
         header.getChildren().addAll(title, subtitle);
@@ -57,7 +53,7 @@ public class MechanicTab extends BorderPane {
         // Name Field
         VBox nameBox = new VBox(8);
         nameBox.getStyleClass().add("form-group");
-        Label lblName = new Label("Full Name *");
+        Label lblName = new Label("Name *");
         lblName.getStyleClass().add("field-label");
         txtName.getStyleClass().add("field-input");
         txtName.setPromptText("John Smith");
@@ -71,45 +67,6 @@ public class MechanicTab extends BorderPane {
         txtPhone.getStyleClass().add("field-input");
         txtPhone.setPromptText("(123) 456-7890");
         phoneBox.getChildren().addAll(lblPhone, txtPhone);
-
-        // Email Field
-        VBox emailBox = new VBox(8);
-        emailBox.getStyleClass().add("form-group");
-        Label lblEmail = new Label("Email");
-        lblEmail.getStyleClass().add("field-label");
-        txtEmail.getStyleClass().add("field-input");
-        txtEmail.setPromptText("john@workshop.com");
-        emailBox.getChildren().addAll(lblEmail, txtEmail);
-
-        // Specialty Field
-        VBox specialtyBox = new VBox(8);
-        specialtyBox.getStyleClass().add("form-group");
-        Label lblSpecialty = new Label("Specialty");
-        lblSpecialty.getStyleClass().add("field-label");
-        cmbSpecialty.getStyleClass().add("field-combo");
-        cmbSpecialty.getItems().addAll("Engine", "Transmission", "Brakes",
-                "Electrical", "Suspension", "AC", "General");
-        cmbSpecialty.setPromptText("Select specialty");
-        specialtyBox.getChildren().addAll(lblSpecialty, cmbSpecialty);
-
-        // Experience Field
-        VBox expBox = new VBox(8);
-        expBox.getStyleClass().add("form-group");
-        Label lblExp = new Label("Experience (years)");
-        lblExp.getStyleClass().add("field-label");
-        txtExperience.getStyleClass().add("field-input");
-        txtExperience.setPromptText("5");
-        expBox.getChildren().addAll(lblExp, txtExperience);
-
-        // Status Field
-        VBox statusBox = new VBox(8);
-        statusBox.getStyleClass().add("form-group");
-        Label lblStatus = new Label("Status");
-        lblStatus.getStyleClass().add("field-label");
-        cmbStatus.getStyleClass().add("field-combo");
-        cmbStatus.getItems().addAll("Active", "On Leave", "Inactive");
-        cmbStatus.setValue("Active");
-        statusBox.getChildren().addAll(lblStatus, cmbStatus);
 
         // Buttons
         HBox formButtons = new HBox(15);
@@ -125,8 +82,7 @@ public class MechanicTab extends BorderPane {
 
         formButtons.getChildren().addAll(btnAdd, btnClear);
 
-        formBox.getChildren().addAll(formTitle, nameBox, phoneBox, emailBox,
-                specialtyBox, expBox, statusBox, formButtons);
+        formBox.getChildren().addAll(formTitle, nameBox, phoneBox, formButtons);
         content.add(formBox, 0, 0);
 
         // Right - Table
@@ -174,41 +130,18 @@ public class MechanicTab extends BorderPane {
         colPhone.setCellValueFactory(new PropertyValueFactory<>("phone"));
         colPhone.setPrefWidth(120);
 
-        TableColumn<Mechanic, String> colSpecialty = new TableColumn<>("Specialty");
-        colSpecialty.setCellValueFactory(new PropertyValueFactory<>("specialty"));
-        colSpecialty.setPrefWidth(120);
-
-        TableColumn<Mechanic, Integer> colExp = new TableColumn<>("Exp. (yrs)");
-        colExp.setCellValueFactory(new PropertyValueFactory<>("experience"));
-        colExp.setPrefWidth(80);
-
-        TableColumn<Mechanic, Integer> colJobs = new TableColumn<>("Active Jobs");
-        colJobs.setCellValueFactory(new PropertyValueFactory<>("activeJobs"));
-        colJobs.setPrefWidth(100);
-
-        TableColumn<Mechanic, String> colStatus = new TableColumn<>("Status");
-        colStatus.setCellValueFactory(new PropertyValueFactory<>("status"));
-        colStatus.setPrefWidth(100);
-
+        // Actions Column - تم الإصلاح هنا
         TableColumn<Mechanic, Void> colActions = new TableColumn<>("Actions");
-        colActions.setPrefWidth(150);
+        colActions.setPrefWidth(120);
         colActions.setCellFactory(param -> new TableCell<Mechanic, Void>() {
-            private final Button btnAssign = new Button("Assign");
             private final Button btnEdit = new Button("Edit");
             private final Button btnDelete = new Button("Delete");
+            private final HBox buttons = new HBox(8, btnEdit, btnDelete);
 
             {
-                btnAssign.getStyleClass().add("btn-table-edit");
                 btnEdit.getStyleClass().add("btn-table-edit");
                 btnDelete.getStyleClass().add("btn-table-delete");
-
-                HBox buttons = new HBox(8, btnAssign, btnEdit, btnDelete);
                 buttons.getStyleClass().add("table-actions");
-
-                btnAssign.setOnAction(e -> {
-                    Mechanic mechanic = getTableView().getItems().get(getIndex());
-                    assignJob(mechanic);
-                });
 
                 btnEdit.setOnAction(e -> {
                     Mechanic mechanic = getTableView().getItems().get(getIndex());
@@ -219,8 +152,6 @@ public class MechanicTab extends BorderPane {
                     Mechanic mechanic = getTableView().getItems().get(getIndex());
                     deleteMechanic(mechanic);
                 });
-
-                setGraphic(buttons);
             }
 
             @Override
@@ -228,30 +159,30 @@ public class MechanicTab extends BorderPane {
                 super.updateItem(item, empty);
                 if (empty) {
                     setGraphic(null);
+                } else {
+                    setGraphic(buttons); // هذا هو الإصلاح
                 }
             }
         });
 
-        table.getColumns().addAll(colId, colName, colPhone, colSpecialty,
-                colExp, colJobs, colStatus, colActions);
+        table.getColumns().addAll(colId, colName, colPhone, colActions);
         table.setItems(mechanicList);
+        table.setFixedCellSize(45);
     }
 
     private void loadMechanics() {
         mechanicList.clear();
         try {
-            ResultSet rs = DB.getMechanics();
-            while (rs.next()) {
-                Mechanic mechanic = new Mechanic(
-                        rs.getInt("mechanic_id"),
-                        rs.getString("name"),
-                        rs.getString("phone"),
-                        rs.getString("specialty"),
-                        rs.getInt("experience"),
-                        rs.getInt("active_jobs"),
-                        rs.getString("status")
-                );
-                mechanicList.add(mechanic);
+            ResultSet rs = DB.executeQuery("SELECT mechanic_id, name, phone FROM mechanic ORDER BY name");
+            if (rs != null) {
+                while (rs.next()) {
+                    Mechanic mechanic = new Mechanic(
+                            rs.getInt("mechanic_id"),
+                            rs.getString("name"),
+                            rs.getString("phone")
+                    );
+                    mechanicList.add(mechanic);
+                }
             }
         } catch (Exception e) {
             showAlert("Error", "Error loading mechanics: " + e.getMessage());
@@ -261,30 +192,15 @@ public class MechanicTab extends BorderPane {
     private void addMechanic() {
         String name = txtName.getText().trim();
         String phone = txtPhone.getText().trim();
-        String email = txtEmail.getText().trim();
-        String specialty = cmbSpecialty.getValue();
-        String experience = txtExperience.getText().trim();
-        String status = cmbStatus.getValue();
 
         if (name.isEmpty()) {
             showAlert("Warning", "Please enter mechanic name");
             return;
         }
 
-        if (!experience.isEmpty()) {
-            try {
-                Integer.parseInt(experience);
-            } catch (NumberFormatException e) {
-                showAlert("Warning", "Experience must be a number");
-                return;
-            }
-        }
-
         String sql = String.format(
-                "INSERT INTO mechanic (name, phone, email, specialty, experience, status) " +
-                        "VALUES ('%s', '%s', '%s', '%s', %s, '%s')",
-                name, phone, email, specialty == null ? "" : specialty,
-                experience.isEmpty() ? "0" : experience, status
+                "INSERT INTO mechanic (name, phone) VALUES ('%s', '%s')",
+                name, phone
         );
 
         int result = DB.executeUpdate(sql);
@@ -297,44 +213,9 @@ public class MechanicTab extends BorderPane {
         }
     }
 
-    private void assignJob(Mechanic mechanic) {
-        ChoiceDialog<String> dialog = new ChoiceDialog<>();
-        dialog.setTitle("Assign Job");
-        dialog.setHeaderText("Assign job to " + mechanic.getName());
-        dialog.setContentText("Select vehicle:");
-
-        try {
-            ResultSet rs = DB.executeQuery(
-                    "SELECT plate_number FROM vehicle WHERE status = 'in_service'"
-            );
-            while (rs.next()) {
-                dialog.getItems().add(rs.getString("plate_number"));
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        dialog.showAndWait().ifPresent(vehicle -> {
-            String sql = String.format(
-                    "INSERT INTO assignments (mechanic_id, vehicle_id, assignment_date, status) " +
-                            "VALUES (%d, (SELECT vehicle_id FROM vehicle WHERE plate_number = '%s'), NOW(), 'assigned')",
-                    mechanic.getMechanicId(), vehicle
-            );
-
-            int result = DB.executeUpdate(sql);
-            if (result > 0) {
-                showAlert("Success", "Job assigned successfully to " + mechanic.getName());
-                loadMechanics();
-            }
-        });
-    }
-
     private void editMechanic(Mechanic mechanic) {
         txtName.setText(mechanic.getName());
         txtPhone.setText(mechanic.getPhone());
-        cmbSpecialty.setValue(mechanic.getSpecialty());
-        txtExperience.setText(String.valueOf(mechanic.getExperience()));
-        cmbStatus.setValue(mechanic.getStatus());
 
         showAlert("Edit Mode", "Edit mechanic details and click 'Add Mechanic' to update");
     }
@@ -360,10 +241,6 @@ public class MechanicTab extends BorderPane {
     private void clearFields() {
         txtName.clear();
         txtPhone.clear();
-        txtEmail.clear();
-        cmbSpecialty.setValue(null);
-        txtExperience.clear();
-        cmbStatus.setValue("Active");
     }
 
     private void showAlert(String title, String message) {
@@ -378,28 +255,15 @@ public class MechanicTab extends BorderPane {
         private int mechanicId;
         private String name;
         private String phone;
-        private String specialty;
-        private int experience;
-        private int activeJobs;
-        private String status;
 
-        public Mechanic(int mechanicId, String name, String phone, String specialty,
-                        int experience, int activeJobs, String status) {
+        public Mechanic(int mechanicId, String name, String phone) {
             this.mechanicId = mechanicId;
             this.name = name;
             this.phone = phone;
-            this.specialty = specialty;
-            this.experience = experience;
-            this.activeJobs = activeJobs;
-            this.status = status;
         }
 
         public int getMechanicId() { return mechanicId; }
         public String getName() { return name; }
         public String getPhone() { return phone; }
-        public String getSpecialty() { return specialty; }
-        public int getExperience() { return experience; }
-        public int getActiveJobs() { return activeJobs; }
-        public String getStatus() { return status; }
     }
 }
