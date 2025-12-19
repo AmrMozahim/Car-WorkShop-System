@@ -24,7 +24,6 @@ public class InvoiceTab extends BorderPane {
     private void initialize() {
         getStyleClass().add("window-root");
 
-        // Header
         VBox header = new VBox(8);
         header.getStyleClass().add("window-header");
         header.setPadding(new Insets(20));
@@ -38,14 +37,12 @@ public class InvoiceTab extends BorderPane {
         header.getChildren().addAll(title, subtitle);
         setTop(header);
 
-        // Content
         GridPane content = new GridPane();
         content.getStyleClass().add("window-content");
         content.setPadding(new Insets(25));
         content.setVgap(20);
         content.setHgap(20);
 
-        // Left - Form
         VBox formBox = new VBox(20);
         formBox.getStyleClass().add("form-box");
         formBox.setPrefWidth(400);
@@ -53,17 +50,29 @@ public class InvoiceTab extends BorderPane {
         Label formTitle = new Label("Create New Invoice");
         formTitle.getStyleClass().add("form-title");
 
-        // Customer Field
         VBox customerBox = new VBox(8);
         customerBox.getStyleClass().add("form-group");
         Label lblCustomer = new Label("Customer *");
         lblCustomer.getStyleClass().add("field-label");
+
+        HBox customerRow = new HBox(5);
+        customerRow.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+
         cmbCustomer.getStyleClass().add("field-combo");
         cmbCustomer.setPromptText("Select customer");
-        loadCustomers();
-        customerBox.getChildren().addAll(lblCustomer, cmbCustomer);
+        cmbCustomer.setPrefWidth(250);
+        cmbCustomer.setItems(CustomerManager.getInstance().getCustomers());
 
-        // Parts Field
+        Button btnRefreshCustomers = new Button("↻");
+        btnRefreshCustomers.getStyleClass().add("btn-secondary");
+        btnRefreshCustomers.setTooltip(new Tooltip("Refresh customer list"));
+        btnRefreshCustomers.setOnAction(e -> {
+            cmbCustomer.setItems(CustomerManager.getInstance().getCustomers());
+        });
+
+        customerRow.getChildren().addAll(cmbCustomer, btnRefreshCustomers);
+        customerBox.getChildren().addAll(lblCustomer, customerRow);
+
         VBox partsBox = new VBox(8);
         partsBox.getStyleClass().add("form-group");
         Label lblParts = new Label("Parts");
@@ -83,7 +92,6 @@ public class InvoiceTab extends BorderPane {
         partsControls.getChildren().addAll(btnAddPart, btnRemovePart);
         partsBox.getChildren().addAll(lblParts, lstParts, partsControls);
 
-        // Total Field
         VBox totalBox = new VBox(8);
         totalBox.getStyleClass().add("form-group");
         Label lblTotal = new Label("Total Amount ($)");
@@ -92,14 +100,12 @@ public class InvoiceTab extends BorderPane {
         txtTotal.setEditable(false);
         totalBox.getChildren().addAll(lblTotal, txtTotal);
 
-        // Date Field
         VBox dateBox = new VBox(8);
         dateBox.getStyleClass().add("form-group");
         Label lblDate = new Label("Date");
         datePicker.getStyleClass().add("field-combo");
         dateBox.getChildren().addAll(lblDate, datePicker);
 
-        // Buttons
         HBox formButtons = new HBox(15);
         formButtons.getStyleClass().add("form-buttons");
 
@@ -121,7 +127,6 @@ public class InvoiceTab extends BorderPane {
                 partsBox, totalBox, dateBox, formButtons);
         content.add(formBox, 0, 0);
 
-        // Right - Table
         VBox tableBox = new VBox(15);
         tableBox.getStyleClass().add("table-box");
 
@@ -147,19 +152,7 @@ public class InvoiceTab extends BorderPane {
         content.add(tableBox, 1, 0);
 
         setCenter(content);
-
         loadInvoices();
-    }
-
-    private void loadCustomers() {
-        try {
-            ResultSet rs = DB.executeQuery("SELECT full_name FROM customer ORDER BY full_name");
-            while (rs.next()) {
-                cmbCustomer.getItems().add(rs.getString("full_name"));
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
     }
 
     private void createTable() {
@@ -181,7 +174,6 @@ public class InvoiceTab extends BorderPane {
         colAmount.setCellValueFactory(new PropertyValueFactory<>("amount"));
         colAmount.setPrefWidth(120);
 
-        // Actions Column - تم الإصلاح هنا
         TableColumn<Invoice, Void> colActions = new TableColumn<>("Actions");
         colActions.setPrefWidth(150);
         colActions.setCellFactory(param -> new TableCell<Invoice, Void>() {
@@ -211,7 +203,7 @@ public class InvoiceTab extends BorderPane {
                 if (empty) {
                     setGraphic(null);
                 } else {
-                    setGraphic(buttons); // هذا هو الإصلاح
+                    setGraphic(buttons);
                 }
             }
         });
@@ -304,12 +296,24 @@ public class InvoiceTab extends BorderPane {
             return;
         }
 
+        try {
+            ResultSet checkRs = DB.executeQuery(
+                    "SELECT customer_id FROM customer WHERE full_name = '" + customer + "'"
+            );
+            if (checkRs == null || !checkRs.next()) {
+                showAlert("Error", "Customer not found in database. Please refresh customer list.");
+                return;
+            }
+        } catch (Exception e) {
+            showAlert("Error", "Error verifying customer: " + e.getMessage());
+            return;
+        }
+
         if (total.isEmpty() || total.equals("0.00")) {
             showAlert("Warning", "Please add parts to the invoice");
             return;
         }
 
-        // Create main invoice
         String sql = String.format(
                 "INSERT INTO salesinvoice (customer_id, invoice_date, total_amount) " +
                         "VALUES ((SELECT customer_id FROM customer WHERE full_name = '%s'), '%s', %s)",
@@ -320,7 +324,6 @@ public class InvoiceTab extends BorderPane {
         if (result > 0) {
             int invoiceId = DB.getLastInsertId();
 
-            // Add items to salesinvoiceitems (parts only)
             for (String part : lstParts.getItems()) {
                 try {
                     String[] parts = part.split(" - \\$");
@@ -328,7 +331,6 @@ public class InvoiceTab extends BorderPane {
                         String partName = parts[0];
                         String price = parts[1];
 
-                        // Get part_id
                         ResultSet rs = DB.executeQuery(
                                 "SELECT part_id FROM sparepart WHERE part_name = '" + partName + "'"
                         );
@@ -350,6 +352,7 @@ public class InvoiceTab extends BorderPane {
             showAlert("Success", "Invoice #" + invoiceId + " created successfully");
             clearFields();
             loadInvoices();
+            Main.refreshDashboardGlobal();
         } else {
             showAlert("Error", "Failed to create invoice");
         }
@@ -375,15 +378,14 @@ public class InvoiceTab extends BorderPane {
 
         alert.showAndWait().ifPresent(response -> {
             if (response == ButtonType.OK) {
-                // Delete invoice items first
                 DB.executeUpdate("DELETE FROM salesinvoiceitems WHERE invoice_id = " + invoice.getInvoiceId());
 
-                // Then delete invoice
                 String sql = "DELETE FROM salesinvoice WHERE invoice_id = " + invoice.getInvoiceId();
                 int result = DB.executeUpdate(sql);
                 if (result > 0) {
                     showAlert("Success", "Invoice deleted successfully");
                     loadInvoices();
+                    Main.refreshDashboardGlobal();
                 }
             }
         });

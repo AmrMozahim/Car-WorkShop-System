@@ -132,7 +132,7 @@ public class SupplierTab extends BorderPane {
         colPhone.setCellValueFactory(new PropertyValueFactory<>("phone"));
         colPhone.setPrefWidth(150);
 
-        // Actions Column - تم الإصلاح هنا
+        // Actions Column
         TableColumn<Supplier, Void> colActions = new TableColumn<>("Actions");
         colActions.setPrefWidth(120);
         colActions.setCellFactory(param -> new TableCell<Supplier, Void>() {
@@ -162,7 +162,7 @@ public class SupplierTab extends BorderPane {
                 if (empty) {
                     setGraphic(null);
                 } else {
-                    setGraphic(buttons); // هذا هو الإصلاح
+                    setGraphic(buttons);
                 }
             }
         });
@@ -211,6 +211,10 @@ public class SupplierTab extends BorderPane {
             showAlert("Success", "Supplier added successfully");
             clearFields();
             loadSuppliers();
+
+            SupplierManager.getInstance().refresh();
+            SupplierManager.getInstance().addSupplier(name);
+            Main.refreshDashboardGlobal();
         } else {
             showAlert("Error", "Failed to add supplier");
         }
@@ -224,18 +228,94 @@ public class SupplierTab extends BorderPane {
     }
 
     private void deleteSupplier(Supplier supplier) {
+        try {
+            ResultSet rs = DB.executeQuery(
+                    "SELECT COUNT(*) as part_count FROM sparepart WHERE supplier_id = " + supplier.getSupplierId()
+            );
+
+            int partCount = 0;
+            if (rs != null && rs.next()) {
+                partCount = rs.getInt("part_count");
+            }
+
+            if (partCount > 0) {
+                Alert warning = new Alert(Alert.AlertType.CONFIRMATION);
+                warning.setTitle("Warning: Supplier Has Parts");
+                warning.setHeaderText("This supplier has " + partCount + " part(s) associated");
+                warning.setContentText("Deleting this supplier will also delete ALL associated parts.\n\n" +
+                        "⚠️ This will remove these parts from inventory and any invoices.\n\n" +
+                        "Do you want to proceed?");
+
+                warning.getButtonTypes().setAll(ButtonType.YES, ButtonType.NO);
+
+                warning.showAndWait().ifPresent(response -> {
+                    if (response == ButtonType.YES) {
+                        deleteSupplierWithParts(supplier);
+                    }
+                });
+            } else {
+                deleteSupplierDirectly(supplier);
+            }
+        } catch (Exception e) {
+            showAlert("Error", "Error checking supplier parts: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    private void deleteSupplierWithParts(Supplier supplier) {
+        try {
+            int supplierId = supplier.getSupplierId();
+
+            ResultSet parts = DB.executeQuery(
+                    "SELECT part_id FROM sparepart WHERE supplier_id = " + supplierId
+            );
+
+            if (parts != null) {
+                while (parts.next()) {
+                    int partId = parts.getInt("part_id");
+                    DB.executeUpdate("DELETE FROM salesinvoiceitems WHERE part_id = " + partId);
+                }
+            }
+
+            DB.executeUpdate("DELETE FROM sparepart WHERE supplier_id = " + supplierId);
+
+            String sql = "DELETE FROM supplier WHERE supplier_id = " + supplierId;
+            int result = DB.executeUpdate(sql);
+
+            if (result > 0) {
+                showAlert("Success", "Supplier and all associated parts deleted successfully");
+                loadSuppliers();
+                SupplierManager.getInstance().refresh();
+                SupplierManager.getInstance().removeSupplier(supplier.getSupplierName());
+                Main.refreshDashboardGlobal();
+            }
+        } catch (Exception e) {
+            showAlert("Error", "Error deleting supplier with parts: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    private void deleteSupplierDirectly(Supplier supplier) {
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
         alert.setTitle("Confirm Delete");
         alert.setHeaderText("Delete Supplier");
-        alert.setContentText("Are you sure you want to delete " + supplier.getSupplierName() + "?\nThis action cannot be undone.");
+        alert.setContentText("Are you sure you want to delete " + supplier.getSupplierName() + "?");
 
         alert.showAndWait().ifPresent(response -> {
             if (response == ButtonType.OK) {
-                String sql = "DELETE FROM supplier WHERE supplier_id = " + supplier.getSupplierId();
-                int result = DB.executeUpdate(sql);
-                if (result > 0) {
-                    showAlert("Success", "Supplier deleted successfully");
-                    loadSuppliers();
+                try {
+                    String sql = "DELETE FROM supplier WHERE supplier_id = " + supplier.getSupplierId();
+                    int result = DB.executeUpdate(sql);
+                    if (result > 0) {
+                        showAlert("Success", "Supplier deleted successfully");
+                        loadSuppliers();
+                        SupplierManager.getInstance().refresh();
+                        SupplierManager.getInstance().removeSupplier(supplier.getSupplierName());
+                        Main.refreshDashboardGlobal();
+                    }
+                } catch (Exception e) {
+                    showAlert("Error", "Error deleting supplier: " + e.getMessage());
+                    e.printStackTrace();
                 }
             }
         });

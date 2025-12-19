@@ -21,7 +21,6 @@ public class ServiceTab extends BorderPane {
     private void initialize() {
         getStyleClass().add("window-root");
 
-        // Header
         VBox header = new VBox(8);
         header.getStyleClass().add("window-header");
         header.setPadding(new Insets(20));
@@ -35,14 +34,12 @@ public class ServiceTab extends BorderPane {
         header.getChildren().addAll(title, subtitle);
         setTop(header);
 
-        // Content
         GridPane content = new GridPane();
         content.getStyleClass().add("window-content");
         content.setPadding(new Insets(25));
         content.setVgap(20);
         content.setHgap(20);
 
-        // Left - Form
         VBox formBox = new VBox(20);
         formBox.getStyleClass().add("form-box");
         formBox.setPrefWidth(350);
@@ -50,7 +47,6 @@ public class ServiceTab extends BorderPane {
         Label formTitle = new Label("Add New Service");
         formTitle.getStyleClass().add("form-title");
 
-        // Name Field
         VBox nameBox = new VBox(8);
         nameBox.getStyleClass().add("form-group");
         Label lblName = new Label("Service Name *");
@@ -59,7 +55,6 @@ public class ServiceTab extends BorderPane {
         txtName.setPromptText("Oil Change, Brake Repair, etc.");
         nameBox.getChildren().addAll(lblName, txtName);
 
-        // Price Field
         VBox priceBox = new VBox(8);
         priceBox.getStyleClass().add("form-group");
         Label lblPrice = new Label("Price ($) *");
@@ -68,7 +63,6 @@ public class ServiceTab extends BorderPane {
         txtPrice.setPromptText("50.00");
         priceBox.getChildren().addAll(lblPrice, txtPrice);
 
-        // Buttons
         HBox formButtons = new HBox(15);
         formButtons.getStyleClass().add("form-buttons");
 
@@ -85,7 +79,6 @@ public class ServiceTab extends BorderPane {
         formBox.getChildren().addAll(formTitle, nameBox, priceBox, formButtons);
         content.add(formBox, 0, 0);
 
-        // Right - Table
         VBox tableBox = new VBox(15);
         tableBox.getStyleClass().add("table-box");
 
@@ -111,7 +104,6 @@ public class ServiceTab extends BorderPane {
         content.add(tableBox, 1, 0);
 
         setCenter(content);
-
         loadServices();
     }
 
@@ -130,7 +122,6 @@ public class ServiceTab extends BorderPane {
         colPrice.setCellValueFactory(new PropertyValueFactory<>("price"));
         colPrice.setPrefWidth(100);
 
-        // Actions Column - تم الإصلاح هنا
         TableColumn<Service, Void> colActions = new TableColumn<>("Actions");
         colActions.setPrefWidth(120);
         colActions.setCellFactory(param -> new TableCell<Service, Void>() {
@@ -160,7 +151,7 @@ public class ServiceTab extends BorderPane {
                 if (empty) {
                     setGraphic(null);
                 } else {
-                    setGraphic(buttons); // هذا هو الإصلاح
+                    setGraphic(buttons);
                 }
             }
         });
@@ -220,6 +211,7 @@ public class ServiceTab extends BorderPane {
             showAlert("Success", "Service added successfully");
             clearFields();
             loadServices();
+            Main.refreshDashboardGlobal();
         } else {
             showAlert("Error", "Failed to add service");
         }
@@ -245,6 +237,7 @@ public class ServiceTab extends BorderPane {
                 if (result > 0) {
                     showAlert("Success", "Service deleted successfully");
                     loadServices();
+                    Main.refreshDashboardGlobal();
                 }
             }
         });

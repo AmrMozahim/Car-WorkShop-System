@@ -21,7 +21,6 @@ public class ReportTab extends BorderPane {
     private void initialize() {
         getStyleClass().add("window-root");
 
-        // Header
         VBox header = new VBox(8);
         header.getStyleClass().add("window-header");
         header.setPadding(new Insets(20));
@@ -32,7 +31,6 @@ public class ReportTab extends BorderPane {
         Label subtitle = new Label("View workshop performance and statistics");
         subtitle.getStyleClass().add("window-subtitle");
 
-        // Date Range Selector
         HBox dateRange = new HBox(15);
         dateRange.setPadding(new Insets(10, 0, 0, 0));
         dateRange.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
@@ -52,7 +50,6 @@ public class ReportTab extends BorderPane {
         header.getChildren().addAll(title, subtitle, dateRange);
         setTop(header);
 
-        // TabPane
         tabPane.getStyleClass().add("tab-pane-modern");
 
         Tab salesTab = new Tab("Sales Report", createSalesReport());
@@ -80,7 +77,6 @@ public class ReportTab extends BorderPane {
         VBox content = new VBox(20);
         content.setPadding(new Insets(25));
 
-        // Summary Stats
         GridPane statsGrid = new GridPane();
         statsGrid.setHgap(20);
         statsGrid.setVgap(20);
@@ -89,24 +85,20 @@ public class ReportTab extends BorderPane {
         String end = endDate.getValue().toString();
 
         try {
-            // Total Revenue
             ResultSet rs1 = DB.executeQuery(
                     "SELECT SUM(total_amount) as total FROM salesinvoice " +
                             "WHERE invoice_date BETWEEN '" + start + "' AND '" + end + "'"
             );
             double totalRevenue = (rs1 != null && rs1.next()) ? rs1.getDouble("total") : 0.0;
 
-            // Invoice Count
             ResultSet rs2 = DB.executeQuery(
                     "SELECT COUNT(*) as count FROM salesinvoice " +
                             "WHERE invoice_date BETWEEN '" + start + "' AND '" + end + "'"
             );
             int invoiceCount = (rs2 != null && rs2.next()) ? rs2.getInt("count") : 0;
 
-            // Average Invoice
             double avgInvoice = invoiceCount > 0 ? totalRevenue / invoiceCount : 0.0;
 
-            // Top Customer
             ResultSet rs3 = DB.executeQuery(
                     "SELECT c.full_name, SUM(s.total_amount) as spent " +
                             "FROM salesinvoice s JOIN customer c ON s.customer_id = c.customer_id " +
@@ -132,7 +124,6 @@ public class ReportTab extends BorderPane {
             e.printStackTrace();
         }
 
-        // Recent Invoices Table
         VBox tableBox = new VBox(15);
         tableBox.getStyleClass().add("table-box");
 
@@ -146,6 +137,7 @@ public class ReportTab extends BorderPane {
             ResultSet rs = DB.executeQuery(
                     "SELECT s.invoice_id, c.full_name, s.invoice_date, s.total_amount " +
                             "FROM salesinvoice s JOIN customer c ON s.customer_id = c.customer_id " +
+                            "WHERE s.invoice_date BETWEEN '" + start + "' AND '" + end + "' " +
                             "ORDER BY s.invoice_date DESC LIMIT 10"
             );
 
@@ -203,39 +195,32 @@ public class ReportTab extends BorderPane {
         VBox content = new VBox(20);
         content.setPadding(new Insets(25));
 
-        // Inventory Stats
         GridPane statsGrid = new GridPane();
         statsGrid.setHgap(20);
         statsGrid.setVgap(20);
 
         try {
-            // Total Parts
             ResultSet rs1 = DB.executeQuery("SELECT COUNT(*) as total FROM sparepart");
             int totalParts = (rs1 != null && rs1.next()) ? rs1.getInt("total") : 0;
 
-            // Low Stock
             ResultSet rs2 = DB.executeQuery("SELECT COUNT(*) as low FROM sparepart WHERE quantity < 10");
             int lowStock = (rs2 != null && rs2.next()) ? rs2.getInt("low") : 0;
 
-            // Total Value
             ResultSet rs3 = DB.executeQuery("SELECT SUM(quantity * price) as value FROM sparepart");
             double totalValue = (rs3 != null && rs3.next()) ? rs3.getDouble("value") : 0.0;
 
             VBox stat1 = createReportStat("Total Parts", String.valueOf(totalParts), "#2E86AB");
             VBox stat2 = createReportStat("Low Stock", String.valueOf(lowStock), "#ef4444");
             VBox stat3 = createReportStat("Inventory Value", "$" + formatCurrency(totalValue), "#10b981");
-            VBox stat4 = createReportStat("Most Used", "Check Parts", "#f59e0b");
 
             statsGrid.add(stat1, 0, 0);
             statsGrid.add(stat2, 1, 0);
             statsGrid.add(stat3, 0, 1);
-            statsGrid.add(stat4, 1, 1);
 
         } catch (Exception e) {
             e.printStackTrace();
         }
 
-        // Low Stock Table
         VBox tableBox = new VBox(15);
         tableBox.getStyleClass().add("table-box");
 
@@ -300,17 +285,14 @@ public class ReportTab extends BorderPane {
         VBox content = new VBox(20);
         content.setPadding(new Insets(25));
 
-        // Customer Stats
         GridPane statsGrid = new GridPane();
         statsGrid.setHgap(20);
         statsGrid.setVgap(20);
 
         try {
-            // Total Customers
             ResultSet rs1 = DB.executeQuery("SELECT COUNT(*) as total FROM customer");
             int totalCustomers = (rs1 != null && rs1.next()) ? rs1.getInt("total") : 0;
 
-            // Active Customers (last 30 days)
             String last30Days = LocalDate.now().minusDays(30).toString();
             ResultSet rs3 = DB.executeQuery(
                     "SELECT COUNT(DISTINCT customer_id) as active FROM salesinvoice " +
@@ -318,7 +300,6 @@ public class ReportTab extends BorderPane {
             );
             int activeCustomers = (rs3 != null && rs3.next()) ? rs3.getInt("active") : 0;
 
-            // Top Spender
             ResultSet rs4 = DB.executeQuery(
                     "SELECT c.full_name, SUM(s.total_amount) as spent " +
                             "FROM salesinvoice s JOIN customer c ON s.customer_id = c.customer_id " +
@@ -343,7 +324,6 @@ public class ReportTab extends BorderPane {
             e.printStackTrace();
         }
 
-        // Top Customers Table
         VBox tableBox = new VBox(15);
         tableBox.getStyleClass().add("table-box");
 
@@ -404,27 +384,22 @@ public class ReportTab extends BorderPane {
         VBox content = new VBox(20);
         content.setPadding(new Insets(25));
 
-        // Service Stats
         GridPane statsGrid = new GridPane();
         statsGrid.setHgap(20);
         statsGrid.setVgap(20);
 
         try {
-            // Total Services
             ResultSet rs1 = DB.executeQuery("SELECT COUNT(*) as total FROM service");
             int totalServices = (rs1 != null && rs1.next()) ? rs1.getInt("total") : 0;
 
             VBox stat1 = createReportStat("Total Services", String.valueOf(totalServices), "#2E86AB");
-            VBox stat2 = createReportStat("Available Services", "View Below", "#A23B72");
 
             statsGrid.add(stat1, 0, 0);
-            statsGrid.add(stat2, 1, 0);
 
         } catch (Exception e) {
             e.printStackTrace();
         }
 
-        // Services Table
         VBox tableBox = new VBox(15);
         tableBox.getStyleClass().add("table-box");
 
@@ -515,7 +490,6 @@ public class ReportTab extends BorderPane {
         alert.showAndWait();
     }
 
-    // Inner classes for table data
     public static class RecentInvoice {
         private int invoiceId;
         private String customer;

@@ -146,7 +146,7 @@ public class CustomerTab extends BorderPane {
         colEmail.setCellValueFactory(new PropertyValueFactory<>("email"));
         colEmail.setPrefWidth(200);
 
-        // Actions Column - تم الإصلاح هنا
+        // Actions Column
         TableColumn<Customer, Void> colActions = new TableColumn<>("Actions");
         colActions.setPrefWidth(150);
         colActions.setCellFactory(param -> new TableCell<Customer, Void>() {
@@ -176,7 +176,7 @@ public class CustomerTab extends BorderPane {
                 if (empty) {
                     setGraphic(null);
                 } else {
-                    setGraphic(buttons); // هذا هو الإصلاح
+                    setGraphic(buttons);
                 }
             }
         });
@@ -227,6 +227,13 @@ public class CustomerTab extends BorderPane {
             showAlert("Success", "Customer added successfully");
             clearFields();
             loadCustomers();
+
+            // تحديث CustomerManager
+            CustomerManager.getInstance().refresh();
+            CustomerManager.getInstance().addCustomer(name);
+
+            // تحديث Dashboard تلقائياً
+            Main.refreshDashboardGlobal();
         } else {
             showAlert("Error", "Failed to add customer");
         }
@@ -244,15 +251,53 @@ public class CustomerTab extends BorderPane {
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
         alert.setTitle("Confirm Delete");
         alert.setHeaderText("Delete Customer");
-        alert.setContentText("Are you sure you want to delete " + customer.getFullName() + "?\nThis action cannot be undone.");
+        alert.setContentText("Are you sure you want to delete " + customer.getFullName() + "?\n\n" +
+                "⚠️ This will also delete ALL associated records:\n" +
+                "• All vehicles of this customer\n" +
+                "• All invoices of this customer\n" +
+                "• All invoice items of this customer\n\n" +
+                "This action cannot be undone!");
+
+        alert.getButtonTypes().setAll(ButtonType.YES, ButtonType.NO);
 
         alert.showAndWait().ifPresent(response -> {
-            if (response == ButtonType.OK) {
-                String sql = "DELETE FROM customer WHERE customer_id = " + customer.getCustomerId();
-                int result = DB.executeUpdate(sql);
-                if (result > 0) {
-                    showAlert("Success", "Customer deleted successfully");
-                    loadCustomers();
+            if (response == ButtonType.YES) {
+                try {
+                    int customerId = customer.getCustomerId();
+
+                    // 1. حذف جميع الفواتير والعناصر المرتبطة
+                    ResultSet invoices = DB.executeQuery(
+                            "SELECT invoice_id FROM salesinvoice WHERE customer_id = " + customerId
+                    );
+
+                    // حذف عناصر الفواتير أولاً
+                    if (invoices != null) {
+                        while (invoices.next()) {
+                            int invoiceId = invoices.getInt("invoice_id");
+                            DB.executeUpdate("DELETE FROM salesinvoiceitems WHERE invoice_id = " + invoiceId);
+                        }
+                    }
+
+                    // حذف الفواتير نفسها
+                    DB.executeUpdate("DELETE FROM salesinvoice WHERE customer_id = " + customerId);
+
+                    // 2. حذف جميع المركبات المرتبطة
+                    DB.executeUpdate("DELETE FROM vehicle WHERE customer_id = " + customerId);
+
+                    // 3. حذف العميل نفسه
+                    String sql = "DELETE FROM customer WHERE customer_id = " + customerId;
+                    int result = DB.executeUpdate(sql);
+
+                    if (result > 0) {
+                        showAlert("Success", "Customer and all associated records deleted successfully");
+                        loadCustomers();
+                        CustomerManager.getInstance().refresh();
+                        CustomerManager.getInstance().removeCustomer(customer.getFullName());
+                        Main.refreshDashboardGlobal();
+                    }
+                } catch (Exception e) {
+                    showAlert("Error", "Error deleting customer: " + e.getMessage());
+                    e.printStackTrace();
                 }
             }
         });

@@ -23,7 +23,6 @@ public class PartsTab extends BorderPane {
     private void initialize() {
         getStyleClass().add("window-root");
 
-        // Header
         VBox header = new VBox(8);
         header.getStyleClass().add("window-header");
         header.setPadding(new Insets(20));
@@ -37,14 +36,12 @@ public class PartsTab extends BorderPane {
         header.getChildren().addAll(title, subtitle);
         setTop(header);
 
-        // Content
         GridPane content = new GridPane();
         content.getStyleClass().add("window-content");
         content.setPadding(new Insets(25));
         content.setVgap(20);
         content.setHgap(20);
 
-        // Left - Form
         VBox formBox = new VBox(20);
         formBox.getStyleClass().add("form-box");
         formBox.setPrefWidth(350);
@@ -52,7 +49,6 @@ public class PartsTab extends BorderPane {
         Label formTitle = new Label("Add New Part");
         formTitle.getStyleClass().add("form-title");
 
-        // Name Field
         VBox nameBox = new VBox(8);
         nameBox.getStyleClass().add("form-group");
         Label lblName = new Label("Part Name *");
@@ -61,7 +57,6 @@ public class PartsTab extends BorderPane {
         txtName.setPromptText("Oil Filter, Brake Pads, etc.");
         nameBox.getChildren().addAll(lblName, txtName);
 
-        // Quantity Field
         VBox quantityBox = new VBox(8);
         quantityBox.getStyleClass().add("form-group");
         Label lblQuantity = new Label("Quantity *");
@@ -70,7 +65,6 @@ public class PartsTab extends BorderPane {
         txtQuantity.setPromptText("50");
         quantityBox.getChildren().addAll(lblQuantity, txtQuantity);
 
-        // Price Field
         VBox priceBox = new VBox(8);
         priceBox.getStyleClass().add("form-group");
         Label lblPrice = new Label("Price ($) *");
@@ -79,17 +73,29 @@ public class PartsTab extends BorderPane {
         txtPrice.setPromptText("25.99");
         priceBox.getChildren().addAll(lblPrice, txtPrice);
 
-        // Supplier Field
         VBox supplierBox = new VBox(8);
         supplierBox.getStyleClass().add("form-group");
         Label lblSupplier = new Label("Supplier");
         lblSupplier.getStyleClass().add("field-label");
+
+        HBox supplierRow = new HBox(5);
+        supplierRow.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+
         cmbSupplier.getStyleClass().add("field-combo");
         cmbSupplier.setPromptText("Select supplier");
-        loadSuppliers();
-        supplierBox.getChildren().addAll(lblSupplier, cmbSupplier);
+        cmbSupplier.setPrefWidth(250);
+        cmbSupplier.setItems(SupplierManager.getInstance().getSuppliers());
 
-        // Buttons
+        Button btnRefreshSuppliers = new Button("↻");
+        btnRefreshSuppliers.getStyleClass().add("btn-secondary");
+        btnRefreshSuppliers.setTooltip(new Tooltip("Refresh supplier list"));
+        btnRefreshSuppliers.setOnAction(e -> {
+            cmbSupplier.setItems(SupplierManager.getInstance().getSuppliers());
+        });
+
+        supplierRow.getChildren().addAll(cmbSupplier, btnRefreshSuppliers);
+        supplierBox.getChildren().addAll(lblSupplier, supplierRow);
+
         HBox formButtons = new HBox(15);
         formButtons.getStyleClass().add("form-buttons");
 
@@ -111,7 +117,6 @@ public class PartsTab extends BorderPane {
                 supplierBox, formButtons);
         content.add(formBox, 0, 0);
 
-        // Right - Table
         VBox tableBox = new VBox(15);
         tableBox.getStyleClass().add("table-box");
 
@@ -137,19 +142,7 @@ public class PartsTab extends BorderPane {
         content.add(tableBox, 1, 0);
 
         setCenter(content);
-
         loadParts();
-    }
-
-    private void loadSuppliers() {
-        try {
-            ResultSet rs = DB.executeQuery("SELECT supplier_name FROM supplier");
-            while (rs.next()) {
-                cmbSupplier.getItems().add(rs.getString("supplier_name"));
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
     }
 
     private void createTable() {
@@ -196,7 +189,6 @@ public class PartsTab extends BorderPane {
             }
         });
 
-        // Actions Column - تم الإصلاح هنا
         TableColumn<Part, Void> colActions = new TableColumn<>("Actions");
         colActions.setPrefWidth(150);
         colActions.setCellFactory(param -> new TableCell<Part, Void>() {
@@ -226,7 +218,7 @@ public class PartsTab extends BorderPane {
                 if (empty) {
                     setGraphic(null);
                 } else {
-                    setGraphic(buttons); // هذا هو الإصلاح
+                    setGraphic(buttons);
                 }
             }
         });
@@ -297,7 +289,20 @@ public class PartsTab extends BorderPane {
 
         String supplierId = "NULL";
         if (supplier != null && !supplier.isEmpty()) {
-            supplierId = "(SELECT supplier_id FROM supplier WHERE supplier_name = '" + supplier + "')";
+            try {
+                ResultSet checkRs = DB.executeQuery(
+                        "SELECT supplier_id FROM supplier WHERE supplier_name = '" + supplier + "'"
+                );
+                if (checkRs == null || !checkRs.next()) {
+                    showAlert("Error", "Supplier not found in database. The supplier may have been deleted.");
+                    cmbSupplier.setValue(null);
+                    return;
+                }
+                supplierId = "(SELECT supplier_id FROM supplier WHERE supplier_name = '" + supplier + "')";
+            } catch (Exception e) {
+                showAlert("Error", "Error verifying supplier: " + e.getMessage());
+                return;
+            }
         }
 
         String sql = String.format(
@@ -311,6 +316,7 @@ public class PartsTab extends BorderPane {
             showAlert("Success", "Part added successfully");
             clearFields();
             loadParts();
+            Main.refreshDashboardGlobal();
         } else {
             showAlert("Error", "Failed to add part");
         }
@@ -329,15 +335,24 @@ public class PartsTab extends BorderPane {
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
         alert.setTitle("Confirm Delete");
         alert.setHeaderText("Delete Part");
-        alert.setContentText("Are you sure you want to delete part " + part.getPartName() + "?");
+        alert.setContentText("Are you sure you want to delete part " + part.getPartName() + "?\n\n" +
+                "⚠️ This will also remove this part from any invoices.");
 
         alert.showAndWait().ifPresent(response -> {
             if (response == ButtonType.OK) {
-                String sql = "DELETE FROM sparepart WHERE part_id = " + part.getPartId();
-                int result = DB.executeUpdate(sql);
-                if (result > 0) {
-                    showAlert("Success", "Part deleted successfully");
-                    loadParts();
+                try {
+                    DB.executeUpdate("DELETE FROM salesinvoiceitems WHERE part_id = " + part.getPartId());
+
+                    String sql = "DELETE FROM sparepart WHERE part_id = " + part.getPartId();
+                    int result = DB.executeUpdate(sql);
+                    if (result > 0) {
+                        showAlert("Success", "Part deleted successfully");
+                        loadParts();
+                        Main.refreshDashboardGlobal();
+                    }
+                } catch (Exception e) {
+                    showAlert("Error", "Error deleting part: " + e.getMessage());
+                    e.printStackTrace();
                 }
             }
         });

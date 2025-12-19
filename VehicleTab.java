@@ -23,7 +23,6 @@ public class VehicleTab extends BorderPane {
     private void initialize() {
         getStyleClass().add("window-root");
 
-        // Header
         VBox header = new VBox(8);
         header.getStyleClass().add("window-header");
         header.setPadding(new Insets(20));
@@ -37,14 +36,12 @@ public class VehicleTab extends BorderPane {
         header.getChildren().addAll(title, subtitle);
         setTop(header);
 
-        // Content
         GridPane content = new GridPane();
         content.getStyleClass().add("window-content");
         content.setPadding(new Insets(25));
         content.setVgap(20);
         content.setHgap(20);
 
-        // Left - Form
         VBox formBox = new VBox(20);
         formBox.getStyleClass().add("form-box");
         formBox.setPrefWidth(350);
@@ -52,17 +49,29 @@ public class VehicleTab extends BorderPane {
         Label formTitle = new Label("Register New Vehicle");
         formTitle.getStyleClass().add("form-title");
 
-        // Customer Field
         VBox customerBox = new VBox(8);
         customerBox.getStyleClass().add("form-group");
         Label lblCustomer = new Label("Customer *");
         lblCustomer.getStyleClass().add("field-label");
+
+        HBox customerRow = new HBox(5);
+        customerRow.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+
         cmbCustomer.getStyleClass().add("field-combo");
         cmbCustomer.setPromptText("Select customer");
-        loadCustomers();
-        customerBox.getChildren().addAll(lblCustomer, cmbCustomer);
+        cmbCustomer.setPrefWidth(250);
+        cmbCustomer.setItems(CustomerManager.getInstance().getCustomers());
 
-        // Plate Field
+        Button btnRefreshCustomers = new Button("↻");
+        btnRefreshCustomers.getStyleClass().add("btn-secondary");
+        btnRefreshCustomers.setTooltip(new Tooltip("Refresh customer list"));
+        btnRefreshCustomers.setOnAction(e -> {
+            cmbCustomer.setItems(CustomerManager.getInstance().getCustomers());
+        });
+
+        customerRow.getChildren().addAll(cmbCustomer, btnRefreshCustomers);
+        customerBox.getChildren().addAll(lblCustomer, customerRow);
+
         VBox plateBox = new VBox(8);
         plateBox.getStyleClass().add("form-group");
         Label lblPlate = new Label("Plate Number *");
@@ -71,7 +80,6 @@ public class VehicleTab extends BorderPane {
         txtPlate.setPromptText("ABC-123");
         plateBox.getChildren().addAll(lblPlate, txtPlate);
 
-        // Model Field
         VBox modelBox = new VBox(8);
         modelBox.getStyleClass().add("form-group");
         Label lblModel = new Label("Model");
@@ -80,7 +88,6 @@ public class VehicleTab extends BorderPane {
         txtModel.setPromptText("Toyota Camry");
         modelBox.getChildren().addAll(lblModel, txtModel);
 
-        // Year Field
         VBox yearBox = new VBox(8);
         yearBox.getStyleClass().add("form-group");
         Label lblYear = new Label("Year");
@@ -89,7 +96,6 @@ public class VehicleTab extends BorderPane {
         txtYear.setPromptText("2020");
         yearBox.getChildren().addAll(lblYear, txtYear);
 
-        // Buttons
         HBox formButtons = new HBox(15);
         formButtons.getStyleClass().add("form-buttons");
 
@@ -107,7 +113,6 @@ public class VehicleTab extends BorderPane {
                 yearBox, formButtons);
         content.add(formBox, 0, 0);
 
-        // Right - Table
         VBox tableBox = new VBox(15);
         tableBox.getStyleClass().add("table-box");
 
@@ -133,19 +138,7 @@ public class VehicleTab extends BorderPane {
         content.add(tableBox, 1, 0);
 
         setCenter(content);
-
         loadVehicles();
-    }
-
-    private void loadCustomers() {
-        try {
-            ResultSet rs = DB.executeQuery("SELECT full_name FROM customer ORDER BY full_name");
-            while (rs.next()) {
-                cmbCustomer.getItems().add(rs.getString("full_name"));
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
     }
 
     private void createTable() {
@@ -171,7 +164,6 @@ public class VehicleTab extends BorderPane {
         colYear.setCellValueFactory(new PropertyValueFactory<>("year"));
         colYear.setPrefWidth(80);
 
-        // Actions Column - تم الإصلاح هنا
         TableColumn<Vehicle, Void> colActions = new TableColumn<>("Actions");
         colActions.setPrefWidth(120);
         colActions.setCellFactory(param -> new TableCell<Vehicle, Void>() {
@@ -201,7 +193,7 @@ public class VehicleTab extends BorderPane {
                 if (empty) {
                     setGraphic(null);
                 } else {
-                    setGraphic(buttons); // هذا هو الإصلاح
+                    setGraphic(buttons);
                 }
             }
         });
@@ -263,6 +255,19 @@ public class VehicleTab extends BorderPane {
             }
         }
 
+        try {
+            ResultSet checkRs = DB.executeQuery(
+                    "SELECT customer_id FROM customer WHERE full_name = '" + customer + "'"
+            );
+            if (checkRs == null || !checkRs.next()) {
+                showAlert("Error", "Customer not found in database. Please refresh customer list.");
+                return;
+            }
+        } catch (Exception e) {
+            showAlert("Error", "Error verifying customer: " + e.getMessage());
+            return;
+        }
+
         String sql = String.format(
                 "INSERT INTO vehicle (customer_id, plate_number, model, manufacture_year) " +
                         "VALUES ((SELECT customer_id FROM customer WHERE full_name = '%s'), '%s', '%s', %s)",
@@ -274,6 +279,7 @@ public class VehicleTab extends BorderPane {
             showAlert("Success", "Vehicle registered successfully");
             clearFields();
             loadVehicles();
+            Main.refreshDashboardGlobal();
         } else {
             showAlert("Error", "Failed to register vehicle");
         }
@@ -305,6 +311,7 @@ public class VehicleTab extends BorderPane {
                 if (result > 0) {
                     showAlert("Success", "Vehicle deleted successfully");
                     loadVehicles();
+                    Main.refreshDashboardGlobal();
                 }
             }
         });

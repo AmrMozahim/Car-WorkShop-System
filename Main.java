@@ -1,4 +1,6 @@
 import javafx.application.Application;
+import javafx.application.Platform;
+import javafx.beans.binding.StringBinding;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -13,6 +15,10 @@ import java.time.format.DateTimeFormatter;
 import java.sql.ResultSet;
 import java.util.HashMap;
 import java.util.Map;
+import javafx.beans.property.*;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.beans.binding.Bindings;
 
 public class Main extends Application {
 
@@ -20,6 +26,23 @@ public class Main extends Application {
     private Button activeNavButton = null;
     private TabPane mainTabPane;
     private Map<String, Tab> tabs = new HashMap<>();
+
+    // خصائص Dashboard ديناميكية
+    private StringProperty totalCustomers = new SimpleStringProperty("0");
+    private StringProperty todayRevenue = new SimpleStringProperty("$0.00");
+    private StringProperty vehiclesInService = new SimpleStringProperty("0");
+    private StringProperty lowStockParts = new SimpleStringProperty("0");
+    private StringProperty todayInvoices = new SimpleStringProperty("0");
+    private StringProperty activeServices = new SimpleStringProperty("0");
+    private StringProperty totalSuppliers = new SimpleStringProperty("0");
+    private StringProperty totalMechanics = new SimpleStringProperty("0");
+
+    // ObservableList للنشاطات الحديثة
+    private ObservableList<HBox> recentActivities = FXCollections.observableArrayList();
+
+    // مراجع لمكونات Dashboard للتحديث
+    private VBox activityListContainer;
+    private GridPane statsGrid;
 
     @Override
     public void start(Stage primaryStage) {
@@ -76,7 +99,10 @@ public class Main extends Application {
         dashTitle.getStyleClass().add("nav-title");
 
         Button dashboardBtn = createNavButton("📊 Dashboard", "dashboard");
-        dashboardBtn.setOnAction(e -> showTab("dashboard"));
+        dashboardBtn.setOnAction(e -> {
+            showTab("dashboard");
+            refreshDashboard(); // تحديث Dashboard عند النقر
+        });
         navButtons.put("dashboard", dashboardBtn);
         setActiveNavButton(dashboardBtn);
 
@@ -184,6 +210,7 @@ public class Main extends Application {
 
         // Show dashboard by default
         showTab("dashboard");
+        refreshDashboard(); // تحديث Dashboard عند البدء
     }
 
     private void createTabs() {
@@ -330,33 +357,15 @@ public class Main extends Application {
         welcomeCard.getChildren().addAll(welcomeText, spacer, dateTime);
 
         // Stats Grid
-        GridPane statsGrid = new GridPane();
+        statsGrid = new GridPane();
         statsGrid.getStyleClass().add("stats-grid");
+        statsGrid.setHgap(20);
+        statsGrid.setVgap(20);
 
-        int totalCustomers = DB.getTotalCustomers();
-        double todayRevenue = DB.getTodayRevenue();
-        int vehiclesInService = DB.getVehiclesInService();
-        int lowStockParts = DB.getLowStockParts();
+        // إنشاء البطاقات الديناميكية
+        updateStatsGrid();
 
-        VBox stat1 = createStatCard("💰", "Today's Revenue", String.format("$%.2f", todayRevenue),
-                getRevenueTrend(todayRevenue), "#2E86AB");
-        VBox stat2 = createStatCard("👥", "Total Customers", String.valueOf(totalCustomers),
-                "", "#A23B72");
-        VBox stat3 = createStatCard("🚗", "Vehicles in Service", String.valueOf(vehiclesInService),
-                "", "#10b981");
-        VBox stat4 = createStatCard("📦", "Low Stock Items", String.valueOf(lowStockParts),
-                "Need reorder", "#f59e0b");
-
-        statsGrid.add(stat1, 0, 0);
-        statsGrid.add(stat2, 1, 0);
-        statsGrid.add(stat3, 0, 1);
-        statsGrid.add(stat4, 1, 1);
-        GridPane.setHgrow(stat1, Priority.ALWAYS);
-        GridPane.setHgrow(stat2, Priority.ALWAYS);
-        GridPane.setHgrow(stat3, Priority.ALWAYS);
-        GridPane.setHgrow(stat4, Priority.ALWAYS);
-
-        // Recent Activity (using only invoices - no customer created_at)
+        // Recent Activity Section
         VBox recentSection = new VBox(15);
         recentSection.getStyleClass().add("recent-section");
 
@@ -371,39 +380,13 @@ public class Main extends Application {
         viewAllBtn.setOnAction(e -> showTab("invoices"));
         sectionHeader.getChildren().addAll(recentTitle, spacer2, viewAllBtn);
 
-        VBox activityList = new VBox(10);
-        activityList.getStyleClass().add("activity-list");
+        activityListContainer = new VBox(10);
+        activityListContainer.getStyleClass().add("activity-list");
 
-        try {
-            ResultSet rs = DB.executeQuery(
-                    "SELECT '🧾' as icon, CONCAT('Invoice #', invoice_id, ' created') as text, " +
-                            "DATE_FORMAT(invoice_date, '%h:%i %p') as time " +
-                            "FROM salesinvoice " +
-                            "WHERE DATE(invoice_date) = CURDATE() " +
-                            "ORDER BY invoice_date DESC " +
-                            "LIMIT 4"
-            );
+        // ربط قائمة النشاطات
+        refreshRecentActivities();
 
-            if (rs != null) {
-                while (rs.next()) {
-                    String icon = rs.getString("icon");
-                    String text = rs.getString("text");
-                    String time = rs.getString("time");
-                    HBox activityItem = createActivityItem(icon, text, time);
-                    activityList.getChildren().add(activityItem);
-                }
-            }
-
-            // If no recent invoices, show a message
-            if (activityList.getChildren().isEmpty()) {
-                HBox noActivity = createActivityItem("📝", "No recent activity today", "Check back later");
-                activityList.getChildren().add(noActivity);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        recentSection.getChildren().addAll(sectionHeader, activityList);
+        recentSection.getChildren().addAll(sectionHeader, activityListContainer);
 
         // Quick Actions
         VBox actionsSection = new VBox(15);
@@ -449,13 +432,63 @@ public class Main extends Application {
         return scroll;
     }
 
-    private String getRevenueTrend(double revenue) {
-        if (revenue > 1000) return "↗️ High";
-        else if (revenue > 500) return "→ Stable";
-        else return "↘️ Low";
+    private void updateStatsGrid() {
+        if (statsGrid == null) return;
+
+        statsGrid.getChildren().clear();
+
+        // ربط القيم بـ DashboardManager
+        DashboardManager dashboardManager = DashboardManager.getInstance();
+
+        // تحديث القيم من Properties
+        totalCustomers.set(String.valueOf(dashboardManager.getTotalCustomers()));
+
+        // إنشاء StringBinding للإيرادات
+        StringBinding revenueBinding = Bindings.createStringBinding(() ->
+                        String.format("$%.2f", dashboardManager.getTodayRevenue()),
+                dashboardManager.todayRevenueProperty()
+        );
+        todayRevenue.bind(revenueBinding);
+
+        vehiclesInService.set(String.valueOf(dashboardManager.getVehiclesInService()));
+        lowStockParts.set(String.valueOf(dashboardManager.getLowStockParts()));
+        todayInvoices.set(String.valueOf(dashboardManager.getTotalInvoices()));
+        activeServices.set(String.valueOf(dashboardManager.getActiveServices()));
+        totalSuppliers.set(String.valueOf(dashboardManager.getTotalSuppliers()));
+        totalMechanics.set(String.valueOf(dashboardManager.getTotalMechanics()));
+
+        // إنشاء بطاقات الإحصائيات
+        VBox stat1 = createDynamicStatCard("💰", "Today's Revenue", todayRevenue, "#2E86AB");
+        VBox stat2 = createDynamicStatCard("👥", "Total Customers", totalCustomers, "#A23B72");
+        VBox stat3 = createDynamicStatCard("🚗", "Vehicles in Service", vehiclesInService, "#10b981");
+        VBox stat4 = createDynamicStatCard("📦", "Low Stock Items", lowStockParts, "#f59e0b");
+        VBox stat5 = createDynamicStatCard("🧾", "Today's Invoices", todayInvoices, "#8b5cf6");
+        VBox stat6 = createDynamicStatCard("⚙️", "Active Services", activeServices, "#3b82f6");
+        VBox stat7 = createDynamicStatCard("🏢", "Suppliers", totalSuppliers, "#ef4444");
+        VBox stat8 = createDynamicStatCard("🔧", "Mechanics", totalMechanics, "#f97316");
+
+        // ترتيب البطاقات في الشبكة (3 أعمدة × 3 صفوف)
+        statsGrid.add(stat1, 0, 0);
+        statsGrid.add(stat2, 1, 0);
+        statsGrid.add(stat3, 2, 0);
+        statsGrid.add(stat4, 0, 1);
+        statsGrid.add(stat5, 1, 1);
+        statsGrid.add(stat6, 2, 1);
+        statsGrid.add(stat7, 0, 2);
+        statsGrid.add(stat8, 1, 2);
+
+        // تعيين التمدد
+        GridPane.setHgrow(stat1, Priority.ALWAYS);
+        GridPane.setHgrow(stat2, Priority.ALWAYS);
+        GridPane.setHgrow(stat3, Priority.ALWAYS);
+        GridPane.setHgrow(stat4, Priority.ALWAYS);
+        GridPane.setHgrow(stat5, Priority.ALWAYS);
+        GridPane.setHgrow(stat6, Priority.ALWAYS);
+        GridPane.setHgrow(stat7, Priority.ALWAYS);
+        GridPane.setHgrow(stat8, Priority.ALWAYS);
     }
 
-    private VBox createStatCard(String icon, String title, String value, String change, String color) {
+    private VBox createDynamicStatCard(String icon, String title, StringProperty valueProperty, String color) {
         VBox card = new VBox(15);
         card.getStyleClass().add("stat-card");
         card.setStyle("-fx-border-color: " + color + "40; -fx-background-color: " + color + "15;");
@@ -471,18 +504,91 @@ public class Main extends Application {
         info.getStyleClass().add("stat-info");
         Label titleLabel = new Label(title);
         titleLabel.getStyleClass().add("stat-title");
-        Label valueLabel = new Label(value);
+        Label valueLabel = new Label();
         valueLabel.getStyleClass().add("stat-value");
         valueLabel.setStyle("-fx-text-fill: " + color + ";");
+
+        // ربط القيمة بالخاصية
+        valueLabel.textProperty().bind(valueProperty);
 
         info.getChildren().addAll(titleLabel, valueLabel);
         header.getChildren().addAll(iconLabel, info);
 
-        Label changeLabel = new Label(change);
-        changeLabel.getStyleClass().add("stat-change");
-
-        card.getChildren().addAll(header, changeLabel);
+        card.getChildren().addAll(header);
         return card;
+    }
+
+    private void refreshRecentActivities() {
+        if (activityListContainer == null) return;
+
+        activityListContainer.getChildren().clear();
+
+        try {
+            // استعلام للفواتير اليوم
+            ResultSet rsInvoices = DB.executeQuery(
+                    "SELECT '🧾' as icon, CONCAT('Invoice #', invoice_id, ' created - $', total_amount) as text, " +
+                            "DATE_FORMAT(invoice_date, '%h:%i %p') as time " +
+                            "FROM salesinvoice " +
+                            "WHERE DATE(invoice_date) = CURDATE() " +
+                            "ORDER BY invoice_date DESC " +
+                            "LIMIT 3"
+            );
+
+            if (rsInvoices != null) {
+                while (rsInvoices.next()) {
+                    String icon = rsInvoices.getString("icon");
+                    String text = rsInvoices.getString("text");
+                    String time = rsInvoices.getString("time");
+                    HBox activityItem = createActivityItem(icon, text, time);
+                    activityListContainer.getChildren().add(activityItem);
+                }
+            }
+
+            // استعلام للعملاء الجدد
+            ResultSet rsCustomers = DB.executeQuery(
+                    "SELECT '👥' as icon, CONCAT('New customer: ', full_name) as text, " +
+                            "'Today' as time " +
+                            "FROM customer " +
+                            "ORDER BY customer_id DESC LIMIT 3"
+            );
+
+            if (rsCustomers != null) {
+                while (rsCustomers.next()) {
+                    String icon = rsCustomers.getString("icon");
+                    String text = rsCustomers.getString("text");
+                    String time = rsCustomers.getString("time");
+                    HBox activityItem = createActivityItem(icon, text, time);
+                    activityListContainer.getChildren().add(activityItem);
+                }
+            }
+
+            // استعلام للمركبات الجديدة
+            ResultSet rsVehicles = DB.executeQuery(
+                    "SELECT '🚗' as icon, CONCAT('New vehicle: ', plate_number) as text, " +
+                            "'Today' as time " +
+                            "FROM vehicle " +
+                            "ORDER BY vehicle_id DESC LIMIT 3"
+            );
+
+            if (rsVehicles != null) {
+                while (rsVehicles.next()) {
+                    String icon = rsVehicles.getString("icon");
+                    String text = rsVehicles.getString("text");
+                    String time = rsVehicles.getString("time");
+                    HBox activityItem = createActivityItem(icon, text, time);
+                    activityListContainer.getChildren().add(activityItem);
+                }
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        // إذا لم توجد نشاطات
+        if (activityListContainer.getChildren().isEmpty()) {
+            HBox noActivity = createActivityItem("📝", "No recent activity today", "Check back later");
+            activityListContainer.getChildren().add(noActivity);
+        }
     }
 
     private HBox createActivityItem(String icon, String text, String time) {
@@ -525,6 +631,27 @@ public class Main extends Application {
         btn.setGraphic(content);
 
         return btn;
+    }
+
+    // طريقة لتحديث Dashboard
+    public void refreshDashboard() {
+        Platform.runLater(() -> {
+            DashboardManager dashboardManager = DashboardManager.getInstance();
+            dashboardManager.refreshAllStats();
+
+            // تحديث الشبكة الإحصائية
+            updateStatsGrid();
+
+            // تحديث النشاطات الحديثة
+            refreshRecentActivities();
+        });
+    }
+
+    // طريقة ثابتة لتحديث Dashboard من أي مكان
+    public static void refreshDashboardGlobal() {
+        Platform.runLater(() -> {
+            DashboardManager.getInstance().refreshAllStats();
+        });
     }
 
     public static void main(String[] args) {

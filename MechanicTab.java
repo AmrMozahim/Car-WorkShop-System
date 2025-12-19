@@ -21,7 +21,6 @@ public class MechanicTab extends BorderPane {
     private void initialize() {
         getStyleClass().add("window-root");
 
-        // Header
         VBox header = new VBox(8);
         header.getStyleClass().add("window-header");
         header.setPadding(new Insets(20));
@@ -35,14 +34,12 @@ public class MechanicTab extends BorderPane {
         header.getChildren().addAll(title, subtitle);
         setTop(header);
 
-        // Content
         GridPane content = new GridPane();
         content.getStyleClass().add("window-content");
         content.setPadding(new Insets(25));
         content.setVgap(20);
         content.setHgap(20);
 
-        // Left - Form
         VBox formBox = new VBox(20);
         formBox.getStyleClass().add("form-box");
         formBox.setPrefWidth(350);
@@ -50,7 +47,6 @@ public class MechanicTab extends BorderPane {
         Label formTitle = new Label("Add New Mechanic");
         formTitle.getStyleClass().add("form-title");
 
-        // Name Field
         VBox nameBox = new VBox(8);
         nameBox.getStyleClass().add("form-group");
         Label lblName = new Label("Name *");
@@ -59,7 +55,6 @@ public class MechanicTab extends BorderPane {
         txtName.setPromptText("John Smith");
         nameBox.getChildren().addAll(lblName, txtName);
 
-        // Phone Field
         VBox phoneBox = new VBox(8);
         phoneBox.getStyleClass().add("form-group");
         Label lblPhone = new Label("Phone Number");
@@ -68,7 +63,6 @@ public class MechanicTab extends BorderPane {
         txtPhone.setPromptText("(123) 456-7890");
         phoneBox.getChildren().addAll(lblPhone, txtPhone);
 
-        // Buttons
         HBox formButtons = new HBox(15);
         formButtons.getStyleClass().add("form-buttons");
 
@@ -85,7 +79,6 @@ public class MechanicTab extends BorderPane {
         formBox.getChildren().addAll(formTitle, nameBox, phoneBox, formButtons);
         content.add(formBox, 0, 0);
 
-        // Right - Table
         VBox tableBox = new VBox(15);
         tableBox.getStyleClass().add("table-box");
 
@@ -111,7 +104,6 @@ public class MechanicTab extends BorderPane {
         content.add(tableBox, 1, 0);
 
         setCenter(content);
-
         loadMechanics();
     }
 
@@ -130,7 +122,6 @@ public class MechanicTab extends BorderPane {
         colPhone.setCellValueFactory(new PropertyValueFactory<>("phone"));
         colPhone.setPrefWidth(120);
 
-        // Actions Column - تم الإصلاح هنا
         TableColumn<Mechanic, Void> colActions = new TableColumn<>("Actions");
         colActions.setPrefWidth(120);
         colActions.setCellFactory(param -> new TableCell<Mechanic, Void>() {
@@ -160,7 +151,7 @@ public class MechanicTab extends BorderPane {
                 if (empty) {
                     setGraphic(null);
                 } else {
-                    setGraphic(buttons); // هذا هو الإصلاح
+                    setGraphic(buttons);
                 }
             }
         });
@@ -208,6 +199,7 @@ public class MechanicTab extends BorderPane {
             showAlert("Success", "Mechanic added successfully");
             clearFields();
             loadMechanics();
+            Main.refreshDashboardGlobal();
         } else {
             showAlert("Error", "Failed to add mechanic");
         }
@@ -233,6 +225,7 @@ public class MechanicTab extends BorderPane {
                 if (result > 0) {
                     showAlert("Success", "Mechanic deleted successfully");
                     loadMechanics();
+                    Main.refreshDashboardGlobal();
                 }
             }
         });
