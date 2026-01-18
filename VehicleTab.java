@@ -5,6 +5,7 @@ import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.*;
 import java.sql.ResultSet;
+import java.sql.PreparedStatement;
 
 public class VehicleTab extends BorderPane {
 
@@ -15,6 +16,9 @@ public class VehicleTab extends BorderPane {
     private TextField txtPlate = new TextField();
     private TextField txtModel = new TextField();
     private TextField txtYear = new TextField();
+
+    private Vehicle editingVehicle = null;
+    private Button btnAdd;
 
     public VehicleTab() {
         initialize();
@@ -99,7 +103,7 @@ public class VehicleTab extends BorderPane {
         HBox formButtons = new HBox(15);
         formButtons.getStyleClass().add("form-buttons");
 
-        Button btnAdd = new Button("Register Vehicle");
+        btnAdd = new Button("Register Vehicle");
         btnAdd.getStyleClass().add("btn-primary");
         btnAdd.setOnAction(e -> addVehicle());
 
@@ -167,18 +171,18 @@ public class VehicleTab extends BorderPane {
         TableColumn<Vehicle, Void> colActions = new TableColumn<>("Actions");
         colActions.setPrefWidth(120);
         colActions.setCellFactory(param -> new TableCell<Vehicle, Void>() {
-            private final Button btnView = new Button("View");
+            private final Button btnEdit = new Button("Edit");
             private final Button btnDelete = new Button("Delete");
-            private final HBox buttons = new HBox(8, btnView, btnDelete);
+            private final HBox buttons = new HBox(8, btnEdit, btnDelete);
 
             {
-                btnView.getStyleClass().add("btn-table-edit");
+                btnEdit.getStyleClass().add("btn-table-edit");
                 btnDelete.getStyleClass().add("btn-table-delete");
                 buttons.getStyleClass().add("table-actions");
 
-                btnView.setOnAction(e -> {
+                btnEdit.setOnAction(e -> {
                     Vehicle vehicle = getTableView().getItems().get(getIndex());
-                    viewVehicle(vehicle);
+                    editVehicle(vehicle);
                 });
 
                 btnDelete.setOnAction(e -> {
@@ -231,10 +235,15 @@ public class VehicleTab extends BorderPane {
     }
 
     private void addVehicle() {
+        if (editingVehicle != null) {
+            updateVehicle(editingVehicle);
+            return;
+        }
+
         String customer = cmbCustomer.getValue();
         String plate = txtPlate.getText().trim();
         String model = txtModel.getText().trim();
-        String year = txtYear.getText().trim();
+        String yearStr = txtYear.getText().trim();
 
         if (customer == null || customer.isEmpty()) {
             showAlert("Warning", "Please select a customer");
@@ -246,56 +255,126 @@ public class VehicleTab extends BorderPane {
             return;
         }
 
-        if (!year.isEmpty()) {
-            try {
-                Integer.parseInt(year);
-            } catch (NumberFormatException e) {
-                showAlert("Warning", "Year must be a number");
-                return;
-            }
-        }
-
         try {
-            ResultSet checkRs = DB.executeQuery(
+            // Get customer ID
+            ResultSet customerRs = DB.executeQuery(
                     "SELECT customer_id FROM customer WHERE full_name = '" + customer + "'"
             );
-            if (checkRs == null || !checkRs.next()) {
-                showAlert("Error", "Customer not found in database. Please refresh customer list.");
+
+            if (customerRs == null || !customerRs.next()) {
+                showAlert("Error", "Customer not found");
                 return;
             }
+
+            int customerId = customerRs.getInt("customer_id");
+            customerRs.close();
+
+            Integer year = null;
+            if (!yearStr.isEmpty()) {
+                year = Integer.parseInt(yearStr);
+            }
+
+            PreparedStatement pstmt = DB.prepareStatement(
+                    "INSERT INTO vehicle (customer_id, plate_number, model, manufacture_year) VALUES (?, ?, ?, ?)"
+            );
+            pstmt.setInt(1, customerId);
+            pstmt.setString(2, plate);
+            pstmt.setString(3, model);
+            if (year != null) {
+                pstmt.setInt(4, year);
+            } else {
+                pstmt.setNull(4, java.sql.Types.INTEGER);
+            }
+
+            int result = DB.executeUpdate(pstmt);
+            if (result > 0) {
+                showAlert("Success", "Vehicle registered successfully");
+                clearFields();
+                loadVehicles();
+                Main.refreshDashboardGlobal();
+            } else {
+                showAlert("Error", "Failed to register vehicle");
+            }
+        } catch (NumberFormatException e) {
+            showAlert("Warning", "Year must be a number");
         } catch (Exception e) {
-            showAlert("Error", "Error verifying customer: " + e.getMessage());
-            return;
-        }
-
-        String sql = String.format(
-                "INSERT INTO vehicle (customer_id, plate_number, model, manufacture_year) " +
-                        "VALUES ((SELECT customer_id FROM customer WHERE full_name = '%s'), '%s', '%s', %s)",
-                customer, plate, model, year.isEmpty() ? "NULL" : year
-        );
-
-        int result = DB.executeUpdate(sql);
-        if (result > 0) {
-            showAlert("Success", "Vehicle registered successfully");
-            clearFields();
-            loadVehicles();
-            Main.refreshDashboardGlobal();
-        } else {
-            showAlert("Error", "Failed to register vehicle");
+            showAlert("Error", "Error registering vehicle: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
-    private void viewVehicle(Vehicle vehicle) {
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle("Vehicle Details");
-        alert.setHeaderText(vehicle.getModel() + " - " + vehicle.getPlateNumber());
-        alert.setContentText(
-                "Customer: " + vehicle.getCustomerName() + "\n" +
-                        "Model: " + vehicle.getModel() + "\n" +
-                        "Year: " + vehicle.getYear() + "\n" +
-                        "Plate: " + vehicle.getPlateNumber()
-        );
-        alert.showAndWait();
+    private void updateVehicle(Vehicle vehicle) {
+        String customer = cmbCustomer.getValue();
+        String plate = txtPlate.getText().trim();
+        String model = txtModel.getText().trim();
+        String yearStr = txtYear.getText().trim();
+
+        if (customer == null || customer.isEmpty()) {
+            showAlert("Warning", "Please select a customer");
+            return;
+        }
+
+        if (plate.isEmpty()) {
+            showAlert("Warning", "Please enter plate number");
+            return;
+        }
+
+        try {
+            // Get customer ID
+            ResultSet customerRs = DB.executeQuery(
+                    "SELECT customer_id FROM customer WHERE full_name = '" + customer + "'"
+            );
+
+            if (customerRs == null || !customerRs.next()) {
+                showAlert("Error", "Customer not found");
+                return;
+            }
+
+            int customerId = customerRs.getInt("customer_id");
+            customerRs.close();
+
+            Integer year = null;
+            if (!yearStr.isEmpty()) {
+                year = Integer.parseInt(yearStr);
+            }
+
+            PreparedStatement pstmt = DB.prepareStatement(
+                    "UPDATE vehicle SET customer_id=?, plate_number=?, model=?, manufacture_year=? WHERE vehicle_id=?"
+            );
+            pstmt.setInt(1, customerId);
+            pstmt.setString(2, plate);
+            pstmt.setString(3, model);
+            if (year != null) {
+                pstmt.setInt(4, year);
+            } else {
+                pstmt.setNull(4, java.sql.Types.INTEGER);
+            }
+            pstmt.setInt(5, vehicle.getVehicleId());
+
+            int result = DB.executeUpdate(pstmt);
+            if (result > 0) {
+                showAlert("Success", "Vehicle updated successfully");
+                clearFields();
+                loadVehicles();
+                Main.refreshDashboardGlobal();
+            } else {
+                showAlert("Error", "Failed to update vehicle");
+            }
+        } catch (Exception e) {
+            showAlert("Error", "Error updating vehicle: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    private void editVehicle(Vehicle vehicle) {
+        editingVehicle = vehicle;
+
+        cmbCustomer.setValue(vehicle.getCustomerName());
+        txtPlate.setText(vehicle.getPlateNumber());
+        txtModel.setText(vehicle.getModel());
+        txtYear.setText(String.valueOf(vehicle.getYear()));
+
+        btnAdd.setText("Update Vehicle");
     }
 
     private void deleteVehicle(Vehicle vehicle) {
@@ -306,18 +385,29 @@ public class VehicleTab extends BorderPane {
 
         alert.showAndWait().ifPresent(response -> {
             if (response == ButtonType.OK) {
-                String sql = "DELETE FROM vehicle WHERE vehicle_id = " + vehicle.getVehicleId();
-                int result = DB.executeUpdate(sql);
-                if (result > 0) {
-                    showAlert("Success", "Vehicle deleted successfully");
-                    loadVehicles();
-                    Main.refreshDashboardGlobal();
+                try {
+                    PreparedStatement pstmt = DB.prepareStatement(
+                            "DELETE FROM vehicle WHERE vehicle_id = ?"
+                    );
+                    pstmt.setInt(1, vehicle.getVehicleId());
+
+                    int result = DB.executeUpdate(pstmt);
+                    if (result > 0) {
+                        showAlert("Success", "Vehicle deleted successfully");
+                        loadVehicles();
+                        Main.refreshDashboardGlobal();
+                    }
+                } catch (Exception e) {
+                    showAlert("Error", "Error deleting vehicle: " + e.getMessage());
+                    e.printStackTrace();
                 }
             }
         });
     }
 
     private void clearFields() {
+        editingVehicle = null;
+        btnAdd.setText("Register Vehicle");
         cmbCustomer.setValue(null);
         txtPlate.clear();
         txtModel.clear();

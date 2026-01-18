@@ -5,6 +5,7 @@ import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.*;
 import java.sql.ResultSet;
+import java.sql.PreparedStatement;
 
 public class SupplierTab extends BorderPane {
 
@@ -13,6 +14,9 @@ public class SupplierTab extends BorderPane {
 
     private TextField txtName = new TextField();
     private TextField txtPhone = new TextField();
+
+    private Supplier editingSupplier = null;
+    private Button btnAdd;
 
     public SupplierTab() {
         initialize();
@@ -72,7 +76,7 @@ public class SupplierTab extends BorderPane {
         HBox formButtons = new HBox(15);
         formButtons.getStyleClass().add("form-buttons");
 
-        Button btnAdd = new Button("Add Supplier");
+        btnAdd = new Button("Add Supplier");
         btnAdd.getStyleClass().add("btn-primary");
         btnAdd.setOnAction(e -> addSupplier());
 
@@ -193,6 +197,11 @@ public class SupplierTab extends BorderPane {
     }
 
     private void addSupplier() {
+        if (editingSupplier != null) {
+            updateSupplier(editingSupplier);
+            return;
+        }
+
         String name = txtName.getText().trim();
         String phone = txtPhone.getText().trim();
 
@@ -201,30 +210,72 @@ public class SupplierTab extends BorderPane {
             return;
         }
 
-        String sql = String.format(
-                "INSERT INTO supplier (supplier_name, phone) VALUES ('%s', '%s')",
-                name, phone
-        );
+        try {
+            PreparedStatement pstmt = DB.prepareStatement(
+                    "INSERT INTO supplier (supplier_name, phone) VALUES (?, ?)"
+            );
+            pstmt.setString(1, name);
+            pstmt.setString(2, phone);
 
-        int result = DB.executeUpdate(sql);
-        if (result > 0) {
-            showAlert("Success", "Supplier added successfully");
-            clearFields();
-            loadSuppliers();
+            int result = DB.executeUpdate(pstmt);
+            if (result > 0) {
+                showAlert("Success", "Supplier added successfully");
+                clearFields();
+                loadSuppliers();
 
-            SupplierManager.getInstance().refresh();
-            SupplierManager.getInstance().addSupplier(name);
-            Main.refreshDashboardGlobal();
-        } else {
-            showAlert("Error", "Failed to add supplier");
+                SupplierManager.getInstance().refresh();
+                SupplierManager.getInstance().addSupplier(name);
+                Main.refreshDashboardGlobal();
+            } else {
+                showAlert("Error", "Failed to add supplier");
+            }
+        } catch (Exception e) {
+            showAlert("Error", "Error adding supplier: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    private void updateSupplier(Supplier supplier) {
+        String name = txtName.getText().trim();
+        String phone = txtPhone.getText().trim();
+
+        if (name.isEmpty()) {
+            showAlert("Warning", "Please enter supplier name");
+            return;
+        }
+
+        try {
+            PreparedStatement pstmt = DB.prepareStatement(
+                    "UPDATE supplier SET supplier_name=?, phone=? WHERE supplier_id=?"
+            );
+            pstmt.setString(1, name);
+            pstmt.setString(2, phone);
+            pstmt.setInt(3, supplier.getSupplierId());
+
+            int result = DB.executeUpdate(pstmt);
+            if (result > 0) {
+                showAlert("Success", "Supplier updated successfully");
+                clearFields();
+                loadSuppliers();
+
+                SupplierManager.getInstance().refresh();
+                Main.refreshDashboardGlobal();
+            } else {
+                showAlert("Error", "Failed to update supplier");
+            }
+        } catch (Exception e) {
+            showAlert("Error", "Error updating supplier: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
     private void editSupplier(Supplier supplier) {
+        editingSupplier = supplier;
+
         txtName.setText(supplier.getSupplierName());
         txtPhone.setText(supplier.getPhone());
 
-        showAlert("Edit Mode", "Editing supplier: " + supplier.getSupplierName());
+        btnAdd.setText("Update Supplier");
     }
 
     private void deleteSupplier(Supplier supplier) {
@@ -279,8 +330,11 @@ public class SupplierTab extends BorderPane {
 
             DB.executeUpdate("DELETE FROM sparepart WHERE supplier_id = " + supplierId);
 
-            String sql = "DELETE FROM supplier WHERE supplier_id = " + supplierId;
-            int result = DB.executeUpdate(sql);
+            PreparedStatement pstmt = DB.prepareStatement(
+                    "DELETE FROM supplier WHERE supplier_id = ?"
+            );
+            pstmt.setInt(1, supplierId);
+            int result = DB.executeUpdate(pstmt);
 
             if (result > 0) {
                 showAlert("Success", "Supplier and all associated parts deleted successfully");
@@ -304,8 +358,12 @@ public class SupplierTab extends BorderPane {
         alert.showAndWait().ifPresent(response -> {
             if (response == ButtonType.OK) {
                 try {
-                    String sql = "DELETE FROM supplier WHERE supplier_id = " + supplier.getSupplierId();
-                    int result = DB.executeUpdate(sql);
+                    PreparedStatement pstmt = DB.prepareStatement(
+                            "DELETE FROM supplier WHERE supplier_id = ?"
+                    );
+                    pstmt.setInt(1, supplier.getSupplierId());
+
+                    int result = DB.executeUpdate(pstmt);
                     if (result > 0) {
                         showAlert("Success", "Supplier deleted successfully");
                         loadSuppliers();
@@ -322,6 +380,8 @@ public class SupplierTab extends BorderPane {
     }
 
     private void clearFields() {
+        editingSupplier = null;
+        btnAdd.setText("Add Supplier");
         txtName.clear();
         txtPhone.clear();
     }

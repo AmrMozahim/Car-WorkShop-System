@@ -5,6 +5,7 @@ import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.*;
 import java.sql.ResultSet;
+import java.sql.PreparedStatement;
 
 public class CustomerTab extends BorderPane {
 
@@ -14,6 +15,10 @@ public class CustomerTab extends BorderPane {
     private TextField txtName = new TextField();
     private TextField txtPhone = new TextField();
     private TextField txtEmail = new TextField();
+    private TextField txtAddress = new TextField();
+
+    private Customer editingCustomer = null;
+    private Button btnAdd;
 
     public CustomerTab() {
         initialize();
@@ -78,11 +83,20 @@ public class CustomerTab extends BorderPane {
         txtEmail.setPromptText("Enter email address");
         emailBox.getChildren().addAll(lblEmail, txtEmail);
 
+        // Address Field
+        VBox addressBox = new VBox(8);
+        addressBox.getStyleClass().add("form-group");
+        Label lblAddress = new Label("Address");
+        lblAddress.getStyleClass().add("field-label");
+        txtAddress.getStyleClass().add("field-input");
+        txtAddress.setPromptText("Enter address");
+        addressBox.getChildren().addAll(lblAddress, txtAddress);
+
         // Form Buttons
         HBox formButtons = new HBox(15);
         formButtons.getStyleClass().add("form-buttons");
 
-        Button btnAdd = new Button("Add Customer");
+        btnAdd = new Button("Add Customer");
         btnAdd.getStyleClass().add("btn-primary");
         btnAdd.setOnAction(e -> addCustomer());
 
@@ -92,7 +106,7 @@ public class CustomerTab extends BorderPane {
 
         formButtons.getChildren().addAll(btnAdd, btnClear);
 
-        formBox.getChildren().addAll(formTitle, nameBox, phoneBox, emailBox, formButtons);
+        formBox.getChildren().addAll(formTitle, nameBox, phoneBox, emailBox, addressBox, formButtons);
         content.add(formBox, 0, 0);
 
         // Right Side - Table
@@ -123,7 +137,6 @@ public class CustomerTab extends BorderPane {
         content.add(tableBox, 1, 0);
 
         setCenter(content);
-
         loadCustomers();
     }
 
@@ -145,6 +158,10 @@ public class CustomerTab extends BorderPane {
         TableColumn<Customer, String> colEmail = new TableColumn<>("Email");
         colEmail.setCellValueFactory(new PropertyValueFactory<>("email"));
         colEmail.setPrefWidth(200);
+
+        TableColumn<Customer, String> colAddress = new TableColumn<>("Address");
+        colAddress.setCellValueFactory(new PropertyValueFactory<>("address"));
+        colAddress.setPrefWidth(200);
 
         // Actions Column
         TableColumn<Customer, Void> colActions = new TableColumn<>("Actions");
@@ -181,7 +198,7 @@ public class CustomerTab extends BorderPane {
             }
         });
 
-        table.getColumns().addAll(colId, colName, colPhone, colEmail, colActions);
+        table.getColumns().addAll(colId, colName, colPhone, colEmail, colAddress, colActions);
         table.setItems(customerList);
         table.setFixedCellSize(45);
     }
@@ -196,10 +213,12 @@ public class CustomerTab extends BorderPane {
                             rs.getInt("customer_id"),
                             rs.getString("full_name"),
                             rs.getString("phone"),
-                            rs.getString("email")
+                            rs.getString("email"),
+                            rs.getString("address")
                     );
                     customerList.add(customer);
                 }
+                rs.close();
             }
         } catch (Exception e) {
             showAlert("Error", "Error loading customers: " + e.getMessage());
@@ -208,43 +227,95 @@ public class CustomerTab extends BorderPane {
     }
 
     private void addCustomer() {
+        // التحقق مما إذا كان في وضع التعديل
+        if (editingCustomer != null) {
+            updateCustomer(editingCustomer);
+            return;
+        }
+
         String name = txtName.getText().trim();
         String phone = txtPhone.getText().trim();
         String email = txtEmail.getText().trim();
+        String address = txtAddress.getText().trim();
 
         if (name.isEmpty()) {
             showAlert("Warning", "Please enter customer name");
             return;
         }
 
-        String sql = String.format(
-                "INSERT INTO customer (full_name, phone, email) VALUES ('%s', '%s', '%s')",
-                name, phone, email
-        );
+        try {
+            PreparedStatement pstmt = DB.prepareStatement(
+                    "INSERT INTO customer (full_name, phone, email, address) VALUES (?, ?, ?, ?)"
+            );
+            pstmt.setString(1, name);
+            pstmt.setString(2, phone);
+            pstmt.setString(3, email);
+            pstmt.setString(4, address);
 
-        int result = DB.executeUpdate(sql);
-        if (result > 0) {
-            showAlert("Success", "Customer added successfully");
-            clearFields();
-            loadCustomers();
+            int result = DB.executeUpdate(pstmt);
+            if (result > 0) {
+                showAlert("Success", "Customer added successfully");
+                clearFields();
+                loadCustomers();
 
-            // تحديث CustomerManager
-            CustomerManager.getInstance().refresh();
-            CustomerManager.getInstance().addCustomer(name);
+                CustomerManager.getInstance().refresh();
+                CustomerManager.getInstance().addCustomer(name);
+                Main.refreshDashboardGlobal();
+            } else {
+                showAlert("Error", "Failed to add customer");
+            }
+        } catch (Exception e) {
+            showAlert("Error", "Error adding customer: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
 
-            // تحديث Dashboard تلقائياً
-            Main.refreshDashboardGlobal();
-        } else {
-            showAlert("Error", "Failed to add customer");
+    private void updateCustomer(Customer customer) {
+        String name = txtName.getText().trim();
+        String phone = txtPhone.getText().trim();
+        String email = txtEmail.getText().trim();
+        String address = txtAddress.getText().trim();
+
+        if (name.isEmpty()) {
+            showAlert("Warning", "Please enter customer name");
+            return;
+        }
+
+        try {
+            PreparedStatement pstmt = DB.prepareStatement(
+                    "UPDATE customer SET full_name=?, phone=?, email=?, address=? WHERE customer_id=?"
+            );
+            pstmt.setString(1, name);
+            pstmt.setString(2, phone);
+            pstmt.setString(3, email);
+            pstmt.setString(4, address);
+            pstmt.setInt(5, customer.getCustomerId());
+
+            int result = DB.executeUpdate(pstmt);
+            if (result > 0) {
+                showAlert("Success", "Customer updated successfully");
+                clearFields();
+                loadCustomers();
+                CustomerManager.getInstance().refresh();
+                Main.refreshDashboardGlobal();
+            } else {
+                showAlert("Error", "Failed to update customer");
+            }
+        } catch (Exception e) {
+            showAlert("Error", "Error updating customer: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
     private void editCustomer(Customer customer) {
+        editingCustomer = customer;
+
         txtName.setText(customer.getFullName());
         txtPhone.setText(customer.getPhone());
         txtEmail.setText(customer.getEmail());
+        txtAddress.setText(customer.getAddress());
 
-        showAlert("Edit Mode", "Edit customer details and click 'Add Customer' to update");
+        btnAdd.setText("Update Customer");
     }
 
     private void deleteCustomer(Customer customer) {
@@ -265,28 +336,37 @@ public class CustomerTab extends BorderPane {
                 try {
                     int customerId = customer.getCustomerId();
 
-                    // 1. حذف جميع الفواتير والعناصر المرتبطة
-                    ResultSet invoices = DB.executeQuery(
-                            "SELECT invoice_id FROM salesinvoice WHERE customer_id = " + customerId
+                    // 1. حذف سجلات service_sparepart المرتبطة
+                    DB.executeUpdate(
+                            "DELETE FROM service_sparepart WHERE vehicle_service_id IN (" +
+                                    "SELECT vehicle_service_id FROM vehicle_service WHERE vehicle_id IN (" +
+                                    "SELECT vehicle_id FROM vehicle WHERE customer_id = " + customerId + "))"
                     );
 
-                    // حذف عناصر الفواتير أولاً
-                    if (invoices != null) {
-                        while (invoices.next()) {
-                            int invoiceId = invoices.getInt("invoice_id");
-                            DB.executeUpdate("DELETE FROM salesinvoiceitems WHERE invoice_id = " + invoiceId);
-                        }
-                    }
+                    // 2. حذف سجلات vehicle_service
+                    DB.executeUpdate(
+                            "DELETE FROM vehicle_service WHERE vehicle_id IN (" +
+                                    "SELECT vehicle_id FROM vehicle WHERE customer_id = " + customerId + ")"
+                    );
 
-                    // حذف الفواتير نفسها
-                    DB.executeUpdate("DELETE FROM salesinvoice WHERE customer_id = " + customerId);
-
-                    // 2. حذف جميع المركبات المرتبطة
+                    // 3. حذف المركبات
                     DB.executeUpdate("DELETE FROM vehicle WHERE customer_id = " + customerId);
 
-                    // 3. حذف العميل نفسه
-                    String sql = "DELETE FROM customer WHERE customer_id = " + customerId;
-                    int result = DB.executeUpdate(sql);
+                    // 4. حذف عناصر الفواتير
+                    DB.executeUpdate(
+                            "DELETE FROM salesinvoiceitems WHERE invoice_id IN (" +
+                                    "SELECT invoice_id FROM salesinvoice WHERE customer_id = " + customerId + ")"
+                    );
+
+                    // 5. حذف الفواتير
+                    DB.executeUpdate("DELETE FROM salesinvoice WHERE customer_id = " + customerId);
+
+                    // 6. حذف العميل
+                    PreparedStatement pstmt = DB.prepareStatement(
+                            "DELETE FROM customer WHERE customer_id = ?"
+                    );
+                    pstmt.setInt(1, customerId);
+                    int result = DB.executeUpdate(pstmt);
 
                     if (result > 0) {
                         showAlert("Success", "Customer and all associated records deleted successfully");
@@ -304,9 +384,12 @@ public class CustomerTab extends BorderPane {
     }
 
     private void clearFields() {
+        editingCustomer = null;
+        btnAdd.setText("Add Customer");
         txtName.clear();
         txtPhone.clear();
         txtEmail.clear();
+        txtAddress.clear();
     }
 
     private void showAlert(String title, String message) {
@@ -322,17 +405,20 @@ public class CustomerTab extends BorderPane {
         private String fullName;
         private String phone;
         private String email;
+        private String address;
 
-        public Customer(int customerId, String fullName, String phone, String email) {
+        public Customer(int customerId, String fullName, String phone, String email, String address) {
             this.customerId = customerId;
             this.fullName = fullName;
             this.phone = phone;
             this.email = email;
+            this.address = address;
         }
 
         public int getCustomerId() { return customerId; }
         public String getFullName() { return fullName; }
         public String getPhone() { return phone; }
         public String getEmail() { return email; }
+        public String getAddress() { return address; }
     }
 }

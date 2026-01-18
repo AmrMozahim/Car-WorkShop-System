@@ -5,6 +5,7 @@ import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.*;
 import java.sql.ResultSet;
+import java.sql.PreparedStatement;
 
 public class PartsTab extends BorderPane {
 
@@ -14,7 +15,11 @@ public class PartsTab extends BorderPane {
     private TextField txtName = new TextField();
     private TextField txtQuantity = new TextField();
     private TextField txtPrice = new TextField();
+    private TextField txtCategory = new TextField();
     private ComboBox<String> cmbSupplier = new ComboBox<>();
+
+    private Part editingPart = null;
+    private Button btnAdd;
 
     public PartsTab() {
         initialize();
@@ -73,9 +78,17 @@ public class PartsTab extends BorderPane {
         txtPrice.setPromptText("25.99");
         priceBox.getChildren().addAll(lblPrice, txtPrice);
 
+        VBox categoryBox = new VBox(8);
+        categoryBox.getStyleClass().add("form-group");
+        Label lblCategory = new Label("Category");
+        lblCategory.getStyleClass().add("field-label");
+        txtCategory.getStyleClass().add("field-input");
+        txtCategory.setPromptText("Engine, Brakes, Electrical, etc.");
+        categoryBox.getChildren().addAll(lblCategory, txtCategory);
+
         VBox supplierBox = new VBox(8);
         supplierBox.getStyleClass().add("form-group");
-        Label lblSupplier = new Label("Supplier");
+        Label lblSupplier = new Label("Supplier (Optional)");
         lblSupplier.getStyleClass().add("field-label");
 
         HBox supplierRow = new HBox(5);
@@ -99,7 +112,7 @@ public class PartsTab extends BorderPane {
         HBox formButtons = new HBox(15);
         formButtons.getStyleClass().add("form-buttons");
 
-        Button btnAdd = new Button("Add Part");
+        btnAdd = new Button("Add Part");
         btnAdd.getStyleClass().add("btn-primary");
         btnAdd.setOnAction(e -> addPart());
 
@@ -114,7 +127,7 @@ public class PartsTab extends BorderPane {
         formButtons.getChildren().addAll(btnAdd, btnClear, btnReorder);
 
         formBox.getChildren().addAll(formTitle, nameBox, quantityBox, priceBox,
-                supplierBox, formButtons);
+                categoryBox, supplierBox, formButtons);
         content.add(formBox, 0, 0);
 
         VBox tableBox = new VBox(15);
@@ -164,8 +177,12 @@ public class PartsTab extends BorderPane {
         colPrice.setCellValueFactory(new PropertyValueFactory<>("price"));
         colPrice.setPrefWidth(100);
 
+        TableColumn<Part, String> colCategory = new TableColumn<>("Category");
+        colCategory.setCellValueFactory(new PropertyValueFactory<>("category"));
+        colCategory.setPrefWidth(120);
+
         TableColumn<Part, String> colSupplier = new TableColumn<>("Supplier");
-        colSupplier.setCellValueFactory(new PropertyValueFactory<>("supplier"));
+        colSupplier.setCellValueFactory(new PropertyValueFactory<>("supplierName"));
         colSupplier.setPrefWidth(150);
 
         TableColumn<Part, String> colStatus = new TableColumn<>("Status");
@@ -182,6 +199,8 @@ public class PartsTab extends BorderPane {
                     setText(status);
                     if (status.equals("LOW")) {
                         setStyle("-fx-text-fill: #ef4444; -fx-font-weight: bold;");
+                    } else if (status.equals("OUT")) {
+                        setStyle("-fx-text-fill: #dc2626; -fx-font-weight: bold;");
                     } else {
                         setStyle("-fx-text-fill: #10b981; -fx-font-weight: bold;");
                     }
@@ -224,7 +243,7 @@ public class PartsTab extends BorderPane {
         });
 
         table.getColumns().addAll(colId, colName, colQuantity, colPrice,
-                colSupplier, colStatus, colActions);
+                colCategory, colSupplier, colStatus, colActions);
         table.setItems(partList);
         table.setFixedCellSize(45);
     }
@@ -233,102 +252,181 @@ public class PartsTab extends BorderPane {
         partList.clear();
         try {
             ResultSet rs = DB.executeQuery(
-                    "SELECT p.part_id, p.part_name, p.quantity, p.price, s.supplier_name " +
-                            "FROM sparepart p LEFT JOIN supplier s ON p.supplier_id = s.supplier_id"
+                    "SELECT p.part_id, p.part_name, p.quantity, p.price, p.category, " +
+                            "s.supplier_name FROM sparepart p " +
+                            "LEFT JOIN supplier s ON p.supplier_id = s.supplier_id " +
+                            "ORDER BY p.part_name"
             );
 
             if (rs != null) {
                 while (rs.next()) {
                     int quantity = rs.getInt("quantity");
-                    String status = quantity < 10 ? "LOW" : "GOOD";
+                    String status;
+                    if (quantity == 0) {
+                        status = "OUT";
+                    } else if (quantity < 10) {
+                        status = "LOW";
+                    } else {
+                        status = "GOOD";
+                    }
 
                     Part part = new Part(
                             rs.getInt("part_id"),
                             rs.getString("part_name"),
                             quantity,
                             rs.getDouble("price"),
+                            rs.getString("category"),
                             rs.getString("supplier_name"),
                             status
                     );
                     partList.add(part);
                 }
+                rs.close();
             }
         } catch (Exception e) {
             showAlert("Error", "Error loading parts: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
     private void addPart() {
+        if (editingPart != null) {
+            updatePart(editingPart);
+            return;
+        }
+
         String name = txtName.getText().trim();
-        String quantity = txtQuantity.getText().trim();
-        String price = txtPrice.getText().trim();
-        String supplier = cmbSupplier.getValue();
+        String quantityStr = txtQuantity.getText().trim();
+        String priceStr = txtPrice.getText().trim();
+        String category = txtCategory.getText().trim();
+        String supplierName = cmbSupplier.getValue();
 
         if (name.isEmpty()) {
             showAlert("Warning", "Please enter part name");
             return;
         }
 
-        if (quantity.isEmpty()) {
+        if (quantityStr.isEmpty()) {
             showAlert("Warning", "Please enter quantity");
             return;
         }
 
-        if (price.isEmpty()) {
+        if (priceStr.isEmpty()) {
             showAlert("Warning", "Please enter price");
             return;
         }
 
         try {
-            Integer.parseInt(quantity);
-            Double.parseDouble(price);
+            int quantity = Integer.parseInt(quantityStr);
+            double price = Double.parseDouble(priceStr);
+            int supplierId = 0;
+
+            if (supplierName != null && !supplierName.isEmpty()) {
+                supplierId = SupplierManager.getInstance().getSupplierIdByName(supplierName);
+            }
+
+            if (quantity < 0) {
+                showAlert("Warning", "Quantity cannot be negative");
+                return;
+            }
+
+            if (price <= 0) {
+                showAlert("Warning", "Price must be greater than 0");
+                return;
+            }
+
+            PreparedStatement pstmt = DB.prepareStatement(
+                    "INSERT INTO sparepart (part_name, quantity, price, category, supplier_id) VALUES (?, ?, ?, ?, ?)"
+            );
+            pstmt.setString(1, name);
+            pstmt.setInt(2, quantity);
+            pstmt.setDouble(3, price);
+            pstmt.setString(4, category.isEmpty() ? null : category);
+            pstmt.setInt(5, supplierId > 0 ? supplierId : null);
+
+            int result = DB.executeUpdate(pstmt);
+            if (result > 0) {
+                showAlert("Success", "Part added successfully");
+                clearFields();
+                loadParts();
+                Main.refreshDashboardGlobal();
+            } else {
+                showAlert("Error", "Failed to add part");
+            }
         } catch (NumberFormatException e) {
-            showAlert("Warning", "Quantity and price must be numbers");
+            showAlert("Warning", "Quantity and price must be valid numbers");
+        } catch (Exception e) {
+            showAlert("Error", "Error adding part: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    private void updatePart(Part part) {
+        String name = txtName.getText().trim();
+        String quantityStr = txtQuantity.getText().trim();
+        String priceStr = txtPrice.getText().trim();
+        String category = txtCategory.getText().trim();
+        String supplierName = cmbSupplier.getValue();
+
+        if (name.isEmpty()) {
+            showAlert("Warning", "Please enter part name");
             return;
         }
 
-        String supplierId = "NULL";
-        if (supplier != null && !supplier.isEmpty()) {
-            try {
-                ResultSet checkRs = DB.executeQuery(
-                        "SELECT supplier_id FROM supplier WHERE supplier_name = '" + supplier + "'"
-                );
-                if (checkRs == null || !checkRs.next()) {
-                    showAlert("Error", "Supplier not found in database. The supplier may have been deleted.");
-                    cmbSupplier.setValue(null);
-                    return;
-                }
-                supplierId = "(SELECT supplier_id FROM supplier WHERE supplier_name = '" + supplier + "')";
-            } catch (Exception e) {
-                showAlert("Error", "Error verifying supplier: " + e.getMessage());
-                return;
-            }
+        if (quantityStr.isEmpty()) {
+            showAlert("Warning", "Please enter quantity");
+            return;
         }
 
-        String sql = String.format(
-                "INSERT INTO sparepart (part_name, quantity, price, supplier_id) " +
-                        "VALUES ('%s', %s, %s, %s)",
-                name, quantity, price, supplierId
-        );
+        if (priceStr.isEmpty()) {
+            showAlert("Warning", "Please enter price");
+            return;
+        }
 
-        int result = DB.executeUpdate(sql);
-        if (result > 0) {
-            showAlert("Success", "Part added successfully");
-            clearFields();
-            loadParts();
-            Main.refreshDashboardGlobal();
-        } else {
-            showAlert("Error", "Failed to add part");
+        try {
+            int quantity = Integer.parseInt(quantityStr);
+            double price = Double.parseDouble(priceStr);
+            int supplierId = 0;
+
+            if (supplierName != null && !supplierName.isEmpty()) {
+                supplierId = SupplierManager.getInstance().getSupplierIdByName(supplierName);
+            }
+
+            PreparedStatement pstmt = DB.prepareStatement(
+                    "UPDATE sparepart SET part_name=?, quantity=?, price=?, category=?, supplier_id=? WHERE part_id=?"
+            );
+            pstmt.setString(1, name);
+            pstmt.setInt(2, quantity);
+            pstmt.setDouble(3, price);
+            pstmt.setString(4, category.isEmpty() ? null : category);
+            pstmt.setInt(5, supplierId > 0 ? supplierId : null);
+            pstmt.setInt(6, part.getPartId());
+
+            int result = DB.executeUpdate(pstmt);
+            if (result > 0) {
+                showAlert("Success", "Part updated successfully");
+                clearFields();
+                loadParts();
+                Main.refreshDashboardGlobal();
+            } else {
+                showAlert("Error", "Failed to update part");
+            }
+        } catch (Exception e) {
+            showAlert("Error", "Error updating part: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
     private void editPart(Part part) {
+        editingPart = part;
+
         txtName.setText(part.getPartName());
         txtQuantity.setText(String.valueOf(part.getQuantity()));
-        txtPrice.setText(String.valueOf(part.getPrice()));
-        cmbSupplier.setValue(part.getSupplier());
+        txtPrice.setText(String.format("%.2f", part.getPrice()));
+        txtCategory.setText(part.getCategory() != null ? part.getCategory() : "");
+        cmbSupplier.setValue(part.getSupplierName());
 
-        showAlert("Edit Mode", "Edit part details and click 'Add Part' to update");
+        btnAdd.setText("Update Part");
     }
 
     private void deletePart(Part part) {
@@ -341,10 +439,19 @@ public class PartsTab extends BorderPane {
         alert.showAndWait().ifPresent(response -> {
             if (response == ButtonType.OK) {
                 try {
+                    // حذف العنصر من salesinvoiceitems أولاً
                     DB.executeUpdate("DELETE FROM salesinvoiceitems WHERE part_id = " + part.getPartId());
 
-                    String sql = "DELETE FROM sparepart WHERE part_id = " + part.getPartId();
-                    int result = DB.executeUpdate(sql);
+                    // حذف من service_sparepart إذا كان موجوداً
+                    DB.executeUpdate("DELETE FROM service_sparepart WHERE part_id = " + part.getPartId());
+
+                    // حذف الجزء نفسه
+                    PreparedStatement pstmt = DB.prepareStatement(
+                            "DELETE FROM sparepart WHERE part_id = ?"
+                    );
+                    pstmt.setInt(1, part.getPartId());
+
+                    int result = DB.executeUpdate(pstmt);
                     if (result > 0) {
                         showAlert("Success", "Part deleted successfully");
                         loadParts();
@@ -360,20 +467,25 @@ public class PartsTab extends BorderPane {
 
     private void showLowStock() {
         int lowStockCount = 0;
-        StringBuilder lowStockList = new StringBuilder("Low Stock Parts:\n\n");
+        int outOfStockCount = 0;
+        StringBuilder lowStockList = new StringBuilder("Stock Alert:\n\n");
 
         for (Part part : partList) {
             if (part.getStatus().equals("LOW")) {
                 lowStockCount++;
-                lowStockList.append("• ").append(part.getPartName())
+                lowStockList.append("⚠️ LOW: ").append(part.getPartName())
                         .append(" - ").append(part.getQuantity()).append(" left\n");
+            } else if (part.getStatus().equals("OUT")) {
+                outOfStockCount++;
+                lowStockList.append("❌ OUT: ").append(part.getPartName())
+                        .append(" - Out of stock\n");
             }
         }
 
-        if (lowStockCount > 0) {
+        if (lowStockCount > 0 || outOfStockCount > 0) {
             Alert alert = new Alert(Alert.AlertType.WARNING);
-            alert.setTitle("Low Stock Alert");
-            alert.setHeaderText(lowStockCount + " parts are low in stock");
+            alert.setTitle("Stock Alert");
+            alert.setHeaderText(lowStockCount + " parts low, " + outOfStockCount + " parts out of stock");
             alert.setContentText(lowStockList.toString());
             alert.showAndWait();
         } else {
@@ -382,9 +494,12 @@ public class PartsTab extends BorderPane {
     }
 
     private void clearFields() {
+        editingPart = null;
+        btnAdd.setText("Add Part");
         txtName.clear();
         txtQuantity.clear();
         txtPrice.clear();
+        txtCategory.clear();
         cmbSupplier.setValue(null);
     }
 
@@ -401,16 +516,18 @@ public class PartsTab extends BorderPane {
         private String partName;
         private int quantity;
         private double price;
-        private String supplier;
+        private String category;
+        private String supplierName;
         private String status;
 
         public Part(int partId, String partName, int quantity, double price,
-                    String supplier, String status) {
+                    String category, String supplierName, String status) {
             this.partId = partId;
             this.partName = partName;
             this.quantity = quantity;
             this.price = price;
-            this.supplier = supplier;
+            this.category = category;
+            this.supplierName = supplierName;
             this.status = status;
         }
 
@@ -418,7 +535,8 @@ public class PartsTab extends BorderPane {
         public String getPartName() { return partName; }
         public int getQuantity() { return quantity; }
         public double getPrice() { return price; }
-        public String getSupplier() { return supplier; }
+        public String getCategory() { return category; }
+        public String getSupplierName() { return supplierName; }
         public String getStatus() { return status; }
     }
 }

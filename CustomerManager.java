@@ -1,6 +1,4 @@
 import java.sql.ResultSet;
-import java.util.ArrayList;
-import java.util.List;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 
@@ -23,8 +21,11 @@ public class CustomerManager {
         customers.clear();
         try {
             ResultSet rs = DB.executeQuery("SELECT full_name FROM customer ORDER BY full_name");
-            while (rs.next()) {
-                customers.add(rs.getString("full_name"));
+            if (rs != null) {
+                while (rs.next()) {
+                    customers.add(rs.getString("full_name"));
+                }
+                rs.close();
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -48,5 +49,21 @@ public class CustomerManager {
 
     public void removeCustomer(String name) {
         customers.remove(name);
+    }
+
+    public int getCustomerIdByName(String name) {
+        try {
+            ResultSet rs = DB.executeQuery(
+                    "SELECT customer_id FROM customer WHERE full_name = '" + name + "'"
+            );
+            if (rs != null && rs.next()) {
+                int id = rs.getInt("customer_id");
+                rs.close();
+                return id;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
     }
 }

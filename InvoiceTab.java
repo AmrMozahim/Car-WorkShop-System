@@ -5,12 +5,16 @@ import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.*;
 import java.sql.ResultSet;
+import java.sql.PreparedStatement;
 import java.time.LocalDate;
+import java.util.HashMap;
+import java.util.Map;
 
 public class InvoiceTab extends BorderPane {
 
     private TableView<Invoice> table = new TableView<>();
     private ObservableList<Invoice> invoiceList = FXCollections.observableArrayList();
+    private Map<String, Integer> partQuantities = new HashMap<>();
 
     private ComboBox<String> cmbCustomer = new ComboBox<>();
     private ListView<String> lstParts = new ListView<>();
@@ -174,6 +178,33 @@ public class InvoiceTab extends BorderPane {
         colAmount.setCellValueFactory(new PropertyValueFactory<>("amount"));
         colAmount.setPrefWidth(120);
 
+        TableColumn<Invoice, String> colItems = new TableColumn<>("Items");
+        colItems.setCellValueFactory(new PropertyValueFactory<>("items"));
+        colItems.setPrefWidth(200);
+
+        TableColumn<Invoice, String> colStatus = new TableColumn<>("Status");
+        colStatus.setCellValueFactory(new PropertyValueFactory<>("paymentStatus"));
+        colStatus.setPrefWidth(100);
+        colStatus.setCellFactory(column -> new TableCell<Invoice, String>() {
+            @Override
+            protected void updateItem(String status, boolean empty) {
+                super.updateItem(status, empty);
+                if (empty || status == null) {
+                    setText(null);
+                    setStyle("");
+                } else {
+                    setText(status);
+                    if (status.equals("Unpaid")) {
+                        setStyle("-fx-text-fill: #ef4444; -fx-font-weight: bold;");
+                    } else if (status.equals("Paid")) {
+                        setStyle("-fx-text-fill: #10b981; -fx-font-weight: bold;");
+                    } else {
+                        setStyle("-fx-text-fill: #f59e0b; -fx-font-weight: bold;");
+                    }
+                }
+            }
+        });
+
         TableColumn<Invoice, Void> colActions = new TableColumn<>("Actions");
         colActions.setPrefWidth(150);
         colActions.setCellFactory(param -> new TableCell<Invoice, Void>() {
@@ -208,7 +239,7 @@ public class InvoiceTab extends BorderPane {
             }
         });
 
-        table.getColumns().addAll(colId, colCustomer, colDate, colAmount, colActions);
+        table.getColumns().addAll(colId, colCustomer, colDate, colAmount, colItems, colStatus, colActions);
         table.setItems(invoiceList);
         table.setFixedCellSize(45);
     }
@@ -217,8 +248,14 @@ public class InvoiceTab extends BorderPane {
         invoiceList.clear();
         try {
             ResultSet rs = DB.executeQuery(
-                    "SELECT s.invoice_id, c.full_name as customer_name, s.invoice_date, s.total_amount " +
-                            "FROM salesinvoice s JOIN customer c ON s.customer_id = c.customer_id " +
+                    "SELECT s.invoice_id, c.full_name as customer_name, s.invoice_date, s.total_amount, " +
+                            "s.payment_status, " +
+                            "GROUP_CONCAT(CONCAT(p.part_name, ' x', si.quantity) SEPARATOR ', ') as items " +
+                            "FROM salesinvoice s " +
+                            "JOIN customer c ON s.customer_id = c.customer_id " +
+                            "LEFT JOIN salesinvoiceitems si ON s.invoice_id = si.invoice_id " +
+                            "LEFT JOIN sparepart p ON si.part_id = p.part_id " +
+                            "GROUP BY s.invoice_id " +
                             "ORDER BY s.invoice_date DESC"
             );
 
@@ -228,27 +265,39 @@ public class InvoiceTab extends BorderPane {
                             rs.getInt("invoice_id"),
                             rs.getString("customer_name"),
                             rs.getString("invoice_date"),
-                            rs.getDouble("total_amount")
+                            rs.getDouble("total_amount"),
+                            rs.getString("items") != null ? rs.getString("items") : "No items",
+                            rs.getString("payment_status")
                     );
                     invoiceList.add(invoice);
                 }
+                rs.close();
             }
         } catch (Exception e) {
             showAlert("Error", "Error loading invoices: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
     private void addPart() {
         try {
-            ResultSet rs = DB.executeQuery("SELECT part_name, price FROM sparepart");
+            ResultSet rs = DB.executeQuery(
+                    "SELECT part_name, price, quantity FROM sparepart WHERE quantity > 0 ORDER BY part_name"
+            );
 
             ChoiceDialog<String> dialog = new ChoiceDialog<>();
             dialog.setTitle("Add Part");
             dialog.setHeaderText("Select a part");
             dialog.setContentText("Part:");
 
-            while (rs != null && rs.next()) {
-                dialog.getItems().add(rs.getString("part_name") + " - $" + rs.getDouble("price"));
+            if (rs != null) {
+                while (rs.next()) {
+                    String partName = rs.getString("part_name");
+                    double price = rs.getDouble("price");
+                    int quantity = rs.getInt("quantity");
+                    dialog.getItems().add(partName + " - $" + String.format("%.2f", price) + " (Stock: " + quantity + ")");
+                }
+                rs.close();
             }
 
             dialog.showAndWait().ifPresent(part -> {
@@ -257,6 +306,7 @@ public class InvoiceTab extends BorderPane {
             });
 
         } catch (Exception e) {
+            showAlert("Error", "Error loading parts: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -276,7 +326,7 @@ public class InvoiceTab extends BorderPane {
             try {
                 String[] parts = part.split(" - \\$");
                 if (parts.length > 1) {
-                    total += Double.parseDouble(parts[1]);
+                    total += Double.parseDouble(parts[1].split(" ")[0]);
                 }
             } catch (Exception e) {
                 // Ignore parsing errors
@@ -297,64 +347,94 @@ public class InvoiceTab extends BorderPane {
         }
 
         try {
+            // التحقق من وجود العميل
             ResultSet checkRs = DB.executeQuery(
                     "SELECT customer_id FROM customer WHERE full_name = '" + customer + "'"
             );
             if (checkRs == null || !checkRs.next()) {
                 showAlert("Error", "Customer not found in database. Please refresh customer list.");
+                if (checkRs != null) checkRs.close();
                 return;
             }
-        } catch (Exception e) {
-            showAlert("Error", "Error verifying customer: " + e.getMessage());
-            return;
-        }
+            int customerId = checkRs.getInt("customer_id");
+            checkRs.close();
 
-        if (total.isEmpty() || total.equals("0.00")) {
-            showAlert("Warning", "Please add parts to the invoice");
-            return;
-        }
-
-        String sql = String.format(
-                "INSERT INTO salesinvoice (customer_id, invoice_date, total_amount) " +
-                        "VALUES ((SELECT customer_id FROM customer WHERE full_name = '%s'), '%s', %s)",
-                customer, date, total
-        );
-
-        int result = DB.executeUpdate(sql);
-        if (result > 0) {
-            int invoiceId = DB.getLastInsertId();
-
-            for (String part : lstParts.getItems()) {
-                try {
-                    String[] parts = part.split(" - \\$");
-                    if (parts.length > 1) {
-                        String partName = parts[0];
-                        String price = parts[1];
-
-                        ResultSet rs = DB.executeQuery(
-                                "SELECT part_id FROM sparepart WHERE part_name = '" + partName + "'"
-                        );
-                        if (rs != null && rs.next()) {
-                            int partId = rs.getInt("part_id");
-                            String itemSql = String.format(
-                                    "INSERT INTO salesinvoiceitems (invoice_id, part_id, quantity, price) " +
-                                            "VALUES (%d, %d, 1, %s)",
-                                    invoiceId, partId, price
-                            );
-                            DB.executeUpdate(itemSql);
-                        }
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+            if (total.isEmpty() || total.equals("0.00")) {
+                showAlert("Warning", "Please add parts to the invoice");
+                return;
             }
 
-            showAlert("Success", "Invoice #" + invoiceId + " created successfully");
-            clearFields();
-            loadInvoices();
-            Main.refreshDashboardGlobal();
-        } else {
-            showAlert("Error", "Failed to create invoice");
+            // 1. إدخال الفاتورة الرئيسية
+            PreparedStatement pstmt = DB.prepareStatement(
+                    "INSERT INTO salesinvoice (customer_id, invoice_date, total_amount, payment_status) VALUES (?, ?, ?, 'Unpaid')"
+            );
+            pstmt.setInt(1, customerId);
+            pstmt.setString(2, date);
+            pstmt.setDouble(3, Double.parseDouble(total));
+
+            int result = DB.executeUpdate(pstmt);
+            if (result > 0) {
+                int invoiceId = DB.getLastInsertId();
+                boolean allPartsAdded = true;
+
+                // 2. إدخال عناصر الفاتورة
+                for (String part : lstParts.getItems()) {
+                    try {
+                        String[] parts = part.split(" - \\$");
+                        if (parts.length > 1) {
+                            String partName = parts[0].trim();
+                            double price = Double.parseDouble(parts[1].split(" ")[0]);
+
+                            ResultSet rs = DB.executeQuery(
+                                    "SELECT part_id, quantity FROM sparepart WHERE part_name = '" + partName + "'"
+                            );
+                            if (rs != null && rs.next()) {
+                                int partId = rs.getInt("part_id");
+                                int availableQuantity = rs.getInt("quantity");
+
+                                if (availableQuantity > 0) {
+                                    // إدخال العنصر في salesinvoiceitems
+                                    PreparedStatement itemStmt = DB.prepareStatement(
+                                            "INSERT INTO salesinvoiceitems (invoice_id, part_id, quantity, price) VALUES (?, ?, ?, ?)"
+                                    );
+                                    itemStmt.setInt(1, invoiceId);
+                                    itemStmt.setInt(2, partId);
+                                    itemStmt.setInt(3, 1);
+                                    itemStmt.setDouble(4, price);
+                                    DB.executeUpdate(itemStmt);
+
+                                    // تقليل الكمية من المخزون
+                                    DB.executeUpdate(
+                                            "UPDATE sparepart SET quantity = quantity - 1 WHERE part_id = " + partId
+                                    );
+                                } else {
+                                    showAlert("Warning", "Part " + partName + " is out of stock!");
+                                    allPartsAdded = false;
+                                }
+                                rs.close();
+                            }
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        allPartsAdded = false;
+                    }
+                }
+
+                if (allPartsAdded) {
+                    showAlert("Success", "Invoice #" + invoiceId + " created successfully");
+                    clearFields();
+                    loadInvoices();
+                    Main.refreshDashboardGlobal();
+                    DashboardManager.getInstance().refreshLowStockParts();
+                } else {
+                    showAlert("Partial Success", "Invoice created but some parts were not available");
+                }
+            } else {
+                showAlert("Error", "Failed to create invoice");
+            }
+        } catch (Exception e) {
+            showAlert("Error", "Error creating invoice: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
@@ -365,7 +445,9 @@ public class InvoiceTab extends BorderPane {
         alert.setContentText(
                 "Customer: " + invoice.getCustomerName() + "\n" +
                         "Date: " + invoice.getDate() + "\n" +
-                        "Amount: $" + invoice.getAmount()
+                        "Amount: $" + invoice.getAmount() + "\n" +
+                        "Status: " + invoice.getPaymentStatus() + "\n" +
+                        "Items: " + invoice.getItems()
         );
         alert.showAndWait();
     }
@@ -378,14 +460,34 @@ public class InvoiceTab extends BorderPane {
 
         alert.showAndWait().ifPresent(response -> {
             if (response == ButtonType.OK) {
-                DB.executeUpdate("DELETE FROM salesinvoiceitems WHERE invoice_id = " + invoice.getInvoiceId());
+                try {
+                    // استعادة الكميات للمخزون أولاً
+                    ResultSet items = DB.executeQuery(
+                            "SELECT part_id, quantity FROM salesinvoiceitems WHERE invoice_id = " + invoice.getInvoiceId()
+                    );
 
-                String sql = "DELETE FROM salesinvoice WHERE invoice_id = " + invoice.getInvoiceId();
-                int result = DB.executeUpdate(sql);
-                if (result > 0) {
+                    if (items != null) {
+                        while (items.next()) {
+                            int partId = items.getInt("part_id");
+                            int quantity = items.getInt("quantity");
+                            DB.executeUpdate(
+                                    "UPDATE sparepart SET quantity = quantity + " + quantity + " WHERE part_id = " + partId
+                            );
+                        }
+                        items.close();
+                    }
+
+                    // حذف العناصر ثم الفاتورة
+                    DB.executeUpdate("DELETE FROM salesinvoiceitems WHERE invoice_id = " + invoice.getInvoiceId());
+                    DB.executeUpdate("DELETE FROM salesinvoice WHERE invoice_id = " + invoice.getInvoiceId());
+
                     showAlert("Success", "Invoice deleted successfully");
                     loadInvoices();
                     Main.refreshDashboardGlobal();
+                    DashboardManager.getInstance().refreshLowStockParts();
+                } catch (Exception e) {
+                    showAlert("Error", "Error deleting invoice: " + e.getMessage());
+                    e.printStackTrace();
                 }
             }
         });
@@ -396,6 +498,7 @@ public class InvoiceTab extends BorderPane {
         lstParts.getItems().clear();
         txtTotal.clear();
         datePicker.setValue(LocalDate.now());
+        partQuantities.clear();
     }
 
     private void showAlert(String title, String message) {
@@ -411,17 +514,23 @@ public class InvoiceTab extends BorderPane {
         private String customerName;
         private String date;
         private double amount;
+        private String items;
+        private String paymentStatus;
 
-        public Invoice(int invoiceId, String customerName, String date, double amount) {
+        public Invoice(int invoiceId, String customerName, String date, double amount, String items, String paymentStatus) {
             this.invoiceId = invoiceId;
             this.customerName = customerName;
             this.date = date;
             this.amount = amount;
+            this.items = items;
+            this.paymentStatus = paymentStatus;
         }
 
         public int getInvoiceId() { return invoiceId; }
         public String getCustomerName() { return customerName; }
         public String getDate() { return date; }
         public double getAmount() { return amount; }
+        public String getItems() { return items; }
+        public String getPaymentStatus() { return paymentStatus; }
     }
 }

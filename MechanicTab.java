@@ -5,6 +5,7 @@ import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.*;
 import java.sql.ResultSet;
+import java.sql.PreparedStatement;
 
 public class MechanicTab extends BorderPane {
 
@@ -13,6 +14,9 @@ public class MechanicTab extends BorderPane {
 
     private TextField txtName = new TextField();
     private TextField txtPhone = new TextField();
+
+    private Mechanic editingMechanic = null;
+    private Button btnAdd;
 
     public MechanicTab() {
         initialize();
@@ -66,7 +70,7 @@ public class MechanicTab extends BorderPane {
         HBox formButtons = new HBox(15);
         formButtons.getStyleClass().add("form-buttons");
 
-        Button btnAdd = new Button("Add Mechanic");
+        btnAdd = new Button("Add Mechanic");
         btnAdd.getStyleClass().add("btn-primary");
         btnAdd.setOnAction(e -> addMechanic());
 
@@ -181,6 +185,11 @@ public class MechanicTab extends BorderPane {
     }
 
     private void addMechanic() {
+        if (editingMechanic != null) {
+            updateMechanic(editingMechanic);
+            return;
+        }
+
         String name = txtName.getText().trim();
         String phone = txtPhone.getText().trim();
 
@@ -189,27 +198,67 @@ public class MechanicTab extends BorderPane {
             return;
         }
 
-        String sql = String.format(
-                "INSERT INTO mechanic (name, phone) VALUES ('%s', '%s')",
-                name, phone
-        );
+        try {
+            PreparedStatement pstmt = DB.prepareStatement(
+                    "INSERT INTO mechanic (name, phone) VALUES (?, ?)"
+            );
+            pstmt.setString(1, name);
+            pstmt.setString(2, phone);
 
-        int result = DB.executeUpdate(sql);
-        if (result > 0) {
-            showAlert("Success", "Mechanic added successfully");
-            clearFields();
-            loadMechanics();
-            Main.refreshDashboardGlobal();
-        } else {
-            showAlert("Error", "Failed to add mechanic");
+            int result = DB.executeUpdate(pstmt);
+            if (result > 0) {
+                showAlert("Success", "Mechanic added successfully");
+                clearFields();
+                loadMechanics();
+                Main.refreshDashboardGlobal();
+            } else {
+                showAlert("Error", "Failed to add mechanic");
+            }
+        } catch (Exception e) {
+            showAlert("Error", "Error adding mechanic: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    private void updateMechanic(Mechanic mechanic) {
+        String name = txtName.getText().trim();
+        String phone = txtPhone.getText().trim();
+
+        if (name.isEmpty()) {
+            showAlert("Warning", "Please enter mechanic name");
+            return;
+        }
+
+        try {
+            PreparedStatement pstmt = DB.prepareStatement(
+                    "UPDATE mechanic SET name=?, phone=? WHERE mechanic_id=?"
+            );
+            pstmt.setString(1, name);
+            pstmt.setString(2, phone);
+            pstmt.setInt(3, mechanic.getMechanicId());
+
+            int result = DB.executeUpdate(pstmt);
+            if (result > 0) {
+                showAlert("Success", "Mechanic updated successfully");
+                clearFields();
+                loadMechanics();
+                Main.refreshDashboardGlobal();
+            } else {
+                showAlert("Error", "Failed to update mechanic");
+            }
+        } catch (Exception e) {
+            showAlert("Error", "Error updating mechanic: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
     private void editMechanic(Mechanic mechanic) {
+        editingMechanic = mechanic;
+
         txtName.setText(mechanic.getName());
         txtPhone.setText(mechanic.getPhone());
 
-        showAlert("Edit Mode", "Edit mechanic details and click 'Add Mechanic' to update");
+        btnAdd.setText("Update Mechanic");
     }
 
     private void deleteMechanic(Mechanic mechanic) {
@@ -220,18 +269,43 @@ public class MechanicTab extends BorderPane {
 
         alert.showAndWait().ifPresent(response -> {
             if (response == ButtonType.OK) {
-                String sql = "DELETE FROM mechanic WHERE mechanic_id = " + mechanic.getMechanicId();
-                int result = DB.executeUpdate(sql);
-                if (result > 0) {
-                    showAlert("Success", "Mechanic deleted successfully");
-                    loadMechanics();
-                    Main.refreshDashboardGlobal();
+                try {
+                    // التحقق من وجود خدمات مرتبطة بالميكانيكي
+                    ResultSet checkRs = DB.executeQuery(
+                            "SELECT COUNT(*) as service_count FROM vehicle_service WHERE mechanic_id = " + mechanic.getMechanicId()
+                    );
+
+                    if (checkRs != null && checkRs.next() && checkRs.getInt("service_count") > 0) {
+                        Alert warning = new Alert(Alert.AlertType.WARNING);
+                        warning.setTitle("Cannot Delete Mechanic");
+                        warning.setHeaderText("Mechanic has assigned services");
+                        warning.setContentText("This mechanic has " + checkRs.getInt("service_count") +
+                                " service(s) assigned. Please reassign or delete those services first.");
+                        warning.showAndWait();
+                        return;
+                    }
+
+                    PreparedStatement pstmt = DB.prepareStatement(
+                            "DELETE FROM mechanic WHERE mechanic_id = ?"
+                    );
+                    pstmt.setInt(1, mechanic.getMechanicId());
+
+                    int result = DB.executeUpdate(pstmt);
+                    if (result > 0) {
+                        showAlert("Success", "Mechanic deleted successfully");
+                        loadMechanics();
+                        Main.refreshDashboardGlobal();
+                    }
+                } catch (Exception e) {
+                    showAlert("Error", "Error deleting mechanic: " + e.getMessage());
                 }
             }
         });
     }
 
     private void clearFields() {
+        editingMechanic = null;
+        btnAdd.setText("Add Mechanic");
         txtName.clear();
         txtPhone.clear();
     }

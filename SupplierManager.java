@@ -21,8 +21,11 @@ public class SupplierManager {
         suppliers.clear();
         try {
             ResultSet rs = DB.executeQuery("SELECT supplier_name FROM supplier ORDER BY supplier_name");
-            while (rs.next()) {
-                suppliers.add(rs.getString("supplier_name"));
+            if (rs != null) {
+                while (rs.next()) {
+                    suppliers.add(rs.getString("supplier_name"));
+                }
+                rs.close();
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -46,5 +49,21 @@ public class SupplierManager {
 
     public void removeSupplier(String name) {
         suppliers.remove(name);
+    }
+
+    public int getSupplierIdByName(String name) {
+        try {
+            ResultSet rs = DB.executeQuery(
+                    "SELECT supplier_id FROM supplier WHERE supplier_name = '" + name + "'"
+            );
+            if (rs != null && rs.next()) {
+                int id = rs.getInt("supplier_id");
+                rs.close();
+                return id;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
     }
 }

@@ -5,6 +5,7 @@ import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.*;
 import java.sql.ResultSet;
+import java.sql.PreparedStatement;
 
 public class ServiceTab extends BorderPane {
 
@@ -13,6 +14,9 @@ public class ServiceTab extends BorderPane {
 
     private TextField txtName = new TextField();
     private TextField txtPrice = new TextField();
+
+    private Service editingService = null;
+    private Button btnAdd;
 
     public ServiceTab() {
         initialize();
@@ -66,7 +70,7 @@ public class ServiceTab extends BorderPane {
         HBox formButtons = new HBox(15);
         formButtons.getStyleClass().add("form-buttons");
 
-        Button btnAdd = new Button("Add Service");
+        btnAdd = new Button("Add Service");
         btnAdd.getStyleClass().add("btn-primary");
         btnAdd.setOnAction(e -> addService());
 
@@ -181,47 +185,106 @@ public class ServiceTab extends BorderPane {
     }
 
     private void addService() {
+        if (editingService != null) {
+            updateService(editingService);
+            return;
+        }
+
         String name = txtName.getText().trim();
-        String price = txtPrice.getText().trim();
+        String priceStr = txtPrice.getText().trim();
 
         if (name.isEmpty()) {
             showAlert("Warning", "Please enter service name");
             return;
         }
 
-        if (price.isEmpty()) {
+        if (priceStr.isEmpty()) {
             showAlert("Warning", "Please enter price");
             return;
         }
 
         try {
-            Double.parseDouble(price);
+            double price = Double.parseDouble(priceStr);
+
+            if (price <= 0) {
+                showAlert("Warning", "Price must be greater than 0");
+                return;
+            }
+
+            PreparedStatement pstmt = DB.prepareStatement(
+                    "INSERT INTO service (service_name, price) VALUES (?, ?)"
+            );
+            pstmt.setString(1, name);
+            pstmt.setDouble(2, price);
+
+            int result = DB.executeUpdate(pstmt);
+            if (result > 0) {
+                showAlert("Success", "Service added successfully");
+                clearFields();
+                loadServices();
+                Main.refreshDashboardGlobal();
+            } else {
+                showAlert("Error", "Failed to add service");
+            }
         } catch (NumberFormatException e) {
             showAlert("Warning", "Price must be a number");
+        } catch (Exception e) {
+            showAlert("Error", "Error adding service: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    private void updateService(Service service) {
+        String name = txtName.getText().trim();
+        String priceStr = txtPrice.getText().trim();
+
+        if (name.isEmpty()) {
+            showAlert("Warning", "Please enter service name");
             return;
         }
 
-        String sql = String.format(
-                "INSERT INTO service (service_name, price) VALUES ('%s', %s)",
-                name, price
-        );
+        if (priceStr.isEmpty()) {
+            showAlert("Warning", "Please enter price");
+            return;
+        }
 
-        int result = DB.executeUpdate(sql);
-        if (result > 0) {
-            showAlert("Success", "Service added successfully");
-            clearFields();
-            loadServices();
-            Main.refreshDashboardGlobal();
-        } else {
-            showAlert("Error", "Failed to add service");
+        try {
+            double price = Double.parseDouble(priceStr);
+
+            if (price <= 0) {
+                showAlert("Warning", "Price must be greater than 0");
+                return;
+            }
+
+            PreparedStatement pstmt = DB.prepareStatement(
+                    "UPDATE service SET service_name=?, price=? WHERE service_id=?"
+            );
+            pstmt.setString(1, name);
+            pstmt.setDouble(2, price);
+            pstmt.setInt(3, service.getServiceId());
+
+            int result = DB.executeUpdate(pstmt);
+            if (result > 0) {
+                showAlert("Success", "Service updated successfully");
+                clearFields();
+                loadServices();
+                Main.refreshDashboardGlobal();
+            } else {
+                showAlert("Error", "Failed to update service");
+            }
+        } catch (Exception e) {
+            showAlert("Error", "Error updating service: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
     private void editService(Service service) {
+        editingService = service;
+
         txtName.setText(service.getServiceName());
         txtPrice.setText(String.valueOf(service.getPrice()));
 
-        showAlert("Edit Mode", "Edit service details and click 'Add Service' to update");
+        btnAdd.setText("Update Service");
     }
 
     private void deleteService(Service service) {
@@ -232,18 +295,29 @@ public class ServiceTab extends BorderPane {
 
         alert.showAndWait().ifPresent(response -> {
             if (response == ButtonType.OK) {
-                String sql = "DELETE FROM service WHERE service_id = " + service.getServiceId();
-                int result = DB.executeUpdate(sql);
-                if (result > 0) {
-                    showAlert("Success", "Service deleted successfully");
-                    loadServices();
-                    Main.refreshDashboardGlobal();
+                try {
+                    PreparedStatement pstmt = DB.prepareStatement(
+                            "DELETE FROM service WHERE service_id = ?"
+                    );
+                    pstmt.setInt(1, service.getServiceId());
+
+                    int result = DB.executeUpdate(pstmt);
+                    if (result > 0) {
+                        showAlert("Success", "Service deleted successfully");
+                        loadServices();
+                        Main.refreshDashboardGlobal();
+                    }
+                } catch (Exception e) {
+                    showAlert("Error", "Error deleting service: " + e.getMessage());
+                    e.printStackTrace();
                 }
             }
         });
     }
 
     private void clearFields() {
+        editingService = null;
+        btnAdd.setText("Add Service");
         txtName.clear();
         txtPrice.clear();
     }

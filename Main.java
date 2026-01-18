@@ -1,12 +1,10 @@
 import javafx.application.Application;
 import javafx.application.Platform;
-import javafx.beans.binding.StringBinding;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
-import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.stage.Stage;
 import java.time.LocalDate;
@@ -18,7 +16,6 @@ import java.util.Map;
 import javafx.beans.property.*;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-import javafx.beans.binding.Bindings;
 
 public class Main extends Application {
 
@@ -36,6 +33,8 @@ public class Main extends Application {
     private StringProperty activeServices = new SimpleStringProperty("0");
     private StringProperty totalSuppliers = new SimpleStringProperty("0");
     private StringProperty totalMechanics = new SimpleStringProperty("0");
+    private StringProperty totalVehicles = new SimpleStringProperty("0");
+    private StringProperty totalParts = new SimpleStringProperty("0");
 
     // ObservableList للنشاطات الحديثة
     private ObservableList<HBox> recentActivities = FXCollections.observableArrayList();
@@ -47,6 +46,12 @@ public class Main extends Application {
     @Override
     public void start(Stage primaryStage) {
         primaryStage.setTitle("Car Workshop Management System");
+
+        // اختبار الاتصال بقاعدة البيانات
+        if (!DB.testConnection()) {
+            showConnectionError();
+            return;
+        }
 
         BorderPane root = new BorderPane();
         root.getStyleClass().add("main-root");
@@ -61,7 +66,7 @@ public class Main extends Application {
         logoContainer.getStyleClass().add("logo-container");
         Label logoText = new Label("CAR WORKSHOP");
         logoText.getStyleClass().add("logo-text");
-        Label logoSubtext = new Label("Vehicle Management");
+        Label logoSubtext = new Label("Vehicle Management System");
         logoSubtext.getStyleClass().add("logo-subtext");
         logoContainer.getChildren().addAll(logoText, logoSubtext);
 
@@ -101,7 +106,7 @@ public class Main extends Application {
         Button dashboardBtn = createNavButton("📊 Dashboard", "dashboard");
         dashboardBtn.setOnAction(e -> {
             showTab("dashboard");
-            refreshDashboard(); // تحديث Dashboard عند النقر
+            refreshDashboard();
         });
         navButtons.put("dashboard", dashboardBtn);
         setActiveNavButton(dashboardBtn);
@@ -171,24 +176,32 @@ public class Main extends Application {
         });
         navButtons.put("suppliers", suppliersBtn);
 
-        opsSection.getChildren().addAll(opsTitle, servicesBtn, partsBtn, invoicesBtn, suppliersBtn);
+        // إضافة الأزرار الجديدة
+        Button purchasesBtn = createNavButton("🛒 Purchases", "purchases");
+        purchasesBtn.setOnAction(e -> {
+            showTab("purchases");
+            setActiveNavButton(purchasesBtn);
+        });
+        navButtons.put("purchases", purchasesBtn);
 
-        // Reports Section
-        VBox reportsSection = new VBox(5);
-        reportsSection.getStyleClass().add("nav-section");
-        Label reportsTitle = new Label("REPORTS");
-        reportsTitle.getStyleClass().add("nav-title");
+        Button workHoursBtn = createNavButton("⏱ Work Hours", "workhours");
+        workHoursBtn.setOnAction(e -> {
+            showTab("workhours");
+            setActiveNavButton(workHoursBtn);
+        });
+        navButtons.put("workhours", workHoursBtn);
 
-        Button reportsBtn = createNavButton("📊 Reports", "reports");
+        Button reportsBtn = createNavButton("📈 Reports", "reports");
         reportsBtn.setOnAction(e -> {
             showTab("reports");
             setActiveNavButton(reportsBtn);
         });
         navButtons.put("reports", reportsBtn);
 
-        reportsSection.getChildren().addAll(reportsTitle, reportsBtn);
+        opsSection.getChildren().addAll(opsTitle, servicesBtn, partsBtn, invoicesBtn,
+                suppliersBtn, purchasesBtn, workHoursBtn, reportsBtn);
 
-        sidebar.getChildren().addAll(dashSection, mgmtSection, opsSection, reportsSection);
+        sidebar.getChildren().addAll(dashSection, mgmtSection, opsSection);
         root.setLeft(sidebar);
 
         // === MAIN CONTENT - TABPANE ===
@@ -210,7 +223,11 @@ public class Main extends Application {
 
         // Show dashboard by default
         showTab("dashboard");
-        refreshDashboard(); // تحديث Dashboard عند البدء
+        refreshDashboard();
+
+        primaryStage.setOnCloseRequest(e -> {
+            DB.closeConnection();
+        });
     }
 
     private void createTabs() {
@@ -218,6 +235,7 @@ public class Main extends Application {
         Tab dashboardTab = new Tab();
         dashboardTab.setId("dashboard");
         dashboardTab.setClosable(false);
+        dashboardTab.setText("Dashboard");
 
         ScrollPane dashboardContent = createDashboardContent();
         dashboardTab.setContent(dashboardContent);
@@ -228,6 +246,7 @@ public class Main extends Application {
         Tab customersTab = new Tab();
         customersTab.setId("customers");
         customersTab.setClosable(false);
+        customersTab.setText("Customers");
         CustomerTab customerTabContent = new CustomerTab();
         customersTab.setContent(customerTabContent);
         mainTabPane.getTabs().add(customersTab);
@@ -237,6 +256,7 @@ public class Main extends Application {
         Tab vehiclesTab = new Tab();
         vehiclesTab.setId("vehicles");
         vehiclesTab.setClosable(false);
+        vehiclesTab.setText("Vehicles");
         VehicleTab vehicleTabContent = new VehicleTab();
         vehiclesTab.setContent(vehicleTabContent);
         mainTabPane.getTabs().add(vehiclesTab);
@@ -246,6 +266,7 @@ public class Main extends Application {
         Tab mechanicsTab = new Tab();
         mechanicsTab.setId("mechanics");
         mechanicsTab.setClosable(false);
+        mechanicsTab.setText("Mechanics");
         MechanicTab mechanicTabContent = new MechanicTab();
         mechanicsTab.setContent(mechanicTabContent);
         mainTabPane.getTabs().add(mechanicsTab);
@@ -255,6 +276,7 @@ public class Main extends Application {
         Tab servicesTab = new Tab();
         servicesTab.setId("services");
         servicesTab.setClosable(false);
+        servicesTab.setText("Services");
         ServiceTab serviceTabContent = new ServiceTab();
         servicesTab.setContent(serviceTabContent);
         mainTabPane.getTabs().add(servicesTab);
@@ -264,6 +286,7 @@ public class Main extends Application {
         Tab partsTab = new Tab();
         partsTab.setId("parts");
         partsTab.setClosable(false);
+        partsTab.setText("Parts");
         PartsTab partsTabContent = new PartsTab();
         partsTab.setContent(partsTabContent);
         mainTabPane.getTabs().add(partsTab);
@@ -273,6 +296,7 @@ public class Main extends Application {
         Tab invoicesTab = new Tab();
         invoicesTab.setId("invoices");
         invoicesTab.setClosable(false);
+        invoicesTab.setText("Invoices");
         InvoiceTab invoiceTabContent = new InvoiceTab();
         invoicesTab.setContent(invoiceTabContent);
         mainTabPane.getTabs().add(invoicesTab);
@@ -282,15 +306,37 @@ public class Main extends Application {
         Tab suppliersTab = new Tab();
         suppliersTab.setId("suppliers");
         suppliersTab.setClosable(false);
+        suppliersTab.setText("Suppliers");
         SupplierTab supplierTabContent = new SupplierTab();
         suppliersTab.setContent(supplierTabContent);
         mainTabPane.getTabs().add(suppliersTab);
         tabs.put("suppliers", suppliersTab);
 
+        // Purchases Tab
+        Tab purchasesTab = new Tab();
+        purchasesTab.setId("purchases");
+        purchasesTab.setClosable(false);
+        purchasesTab.setText("Purchases");
+        PurchaseTab purchaseTabContent = new PurchaseTab();
+        purchasesTab.setContent(purchaseTabContent);
+        mainTabPane.getTabs().add(purchasesTab);
+        tabs.put("purchases", purchasesTab);
+
+        // Work Hours Tab
+        Tab workHoursTab = new Tab();
+        workHoursTab.setId("workhours");
+        workHoursTab.setClosable(false);
+        workHoursTab.setText("Work Hours");
+        MechanicWorkHoursTab workHoursTabContent = new MechanicWorkHoursTab();
+        workHoursTab.setContent(workHoursTabContent);
+        mainTabPane.getTabs().add(workHoursTab);
+        tabs.put("workhours", workHoursTab);
+
         // Reports Tab
         Tab reportsTab = new Tab();
         reportsTab.setId("reports");
         reportsTab.setClosable(false);
+        reportsTab.setText("Reports");
         ReportTab reportTabContent = new ReportTab();
         reportsTab.setContent(reportTabContent);
         mainTabPane.getTabs().add(reportsTab);
@@ -325,6 +371,7 @@ public class Main extends Application {
     private ScrollPane createDashboardContent() {
         ScrollPane scroll = new ScrollPane();
         scroll.setFitToWidth(true);
+        scroll.getStyleClass().add("dashboard-scroll");
 
         VBox dashboardContent = new VBox(25);
         dashboardContent.getStyleClass().add("dashboard-content");
@@ -415,15 +462,12 @@ public class Main extends Application {
         action4.setOnAction(e -> showTab("parts"));
         Button action5 = createActionButton("🚗 Register Vehicle", "🚗");
         action5.setOnAction(e -> showTab("vehicles"));
-        Button action6 = createActionButton("📊 View Reports", "📈");
-        action6.setOnAction(e -> showTab("reports"));
 
         actionsGrid.add(action1, 0, 0);
         actionsGrid.add(action2, 1, 0);
         actionsGrid.add(action3, 2, 0);
         actionsGrid.add(action4, 0, 1);
         actionsGrid.add(action5, 1, 1);
-        actionsGrid.add(action6, 2, 1);
 
         actionsSection.getChildren().addAll(actionsHeader, actionsGrid);
 
@@ -439,23 +483,19 @@ public class Main extends Application {
 
         // ربط القيم بـ DashboardManager
         DashboardManager dashboardManager = DashboardManager.getInstance();
+        dashboardManager.refreshAllStats();
 
-        // تحديث القيم من Properties
-        totalCustomers.set(String.valueOf(dashboardManager.getTotalCustomers()));
-
-        // إنشاء StringBinding للإيرادات
-        StringBinding revenueBinding = Bindings.createStringBinding(() ->
-                        String.format("$%.2f", dashboardManager.getTodayRevenue()),
-                dashboardManager.todayRevenueProperty()
-        );
-        todayRevenue.bind(revenueBinding);
-
-        vehiclesInService.set(String.valueOf(dashboardManager.getVehiclesInService()));
-        lowStockParts.set(String.valueOf(dashboardManager.getLowStockParts()));
-        todayInvoices.set(String.valueOf(dashboardManager.getTotalInvoices()));
-        activeServices.set(String.valueOf(dashboardManager.getActiveServices()));
-        totalSuppliers.set(String.valueOf(dashboardManager.getTotalSuppliers()));
-        totalMechanics.set(String.valueOf(dashboardManager.getTotalMechanics()));
+        // تحديث القيم
+        totalCustomers.set(dashboardManager.getFormattedStat("totalCustomers"));
+        totalVehicles.set(dashboardManager.getFormattedStat("totalVehicles"));
+        totalParts.set(dashboardManager.getFormattedStat("totalParts"));
+        todayRevenue.set(dashboardManager.getFormattedStat("todayRevenue"));
+        vehiclesInService.set(dashboardManager.getFormattedStat("vehiclesInService"));
+        lowStockParts.set(dashboardManager.getFormattedStat("lowStockParts"));
+        todayInvoices.set(dashboardManager.getFormattedStat("totalInvoices"));
+        activeServices.set(dashboardManager.getFormattedStat("activeServices"));
+        totalSuppliers.set(dashboardManager.getFormattedStat("totalSuppliers"));
+        totalMechanics.set(dashboardManager.getFormattedStat("totalMechanics"));
 
         // إنشاء بطاقات الإحصائيات
         VBox stat1 = createDynamicStatCard("💰", "Today's Revenue", todayRevenue, "#2E86AB");
@@ -466,8 +506,10 @@ public class Main extends Application {
         VBox stat6 = createDynamicStatCard("⚙️", "Active Services", activeServices, "#3b82f6");
         VBox stat7 = createDynamicStatCard("🏢", "Suppliers", totalSuppliers, "#ef4444");
         VBox stat8 = createDynamicStatCard("🔧", "Mechanics", totalMechanics, "#f97316");
+        VBox stat9 = createDynamicStatCard("🚙", "Total Vehicles", totalVehicles, "#06b6d4");
+        VBox stat10 = createDynamicStatCard("🔩", "Total Parts", totalParts, "#a855f7");
 
-        // ترتيب البطاقات في الشبكة (3 أعمدة × 3 صفوف)
+        // ترتيب البطاقات في الشبكة (3 أعمدة × 4 صفوف)
         statsGrid.add(stat1, 0, 0);
         statsGrid.add(stat2, 1, 0);
         statsGrid.add(stat3, 2, 0);
@@ -476,16 +518,13 @@ public class Main extends Application {
         statsGrid.add(stat6, 2, 1);
         statsGrid.add(stat7, 0, 2);
         statsGrid.add(stat8, 1, 2);
+        statsGrid.add(stat9, 2, 2);
+        statsGrid.add(stat10, 0, 3);
 
         // تعيين التمدد
-        GridPane.setHgrow(stat1, Priority.ALWAYS);
-        GridPane.setHgrow(stat2, Priority.ALWAYS);
-        GridPane.setHgrow(stat3, Priority.ALWAYS);
-        GridPane.setHgrow(stat4, Priority.ALWAYS);
-        GridPane.setHgrow(stat5, Priority.ALWAYS);
-        GridPane.setHgrow(stat6, Priority.ALWAYS);
-        GridPane.setHgrow(stat7, Priority.ALWAYS);
-        GridPane.setHgrow(stat8, Priority.ALWAYS);
+        for (int i = 0; i < 10; i++) {
+            GridPane.setHgrow(statsGrid.getChildren().get(i), Priority.ALWAYS);
+        }
     }
 
     private VBox createDynamicStatCard(String icon, String title, StringProperty valueProperty, String color) {
@@ -493,12 +532,14 @@ public class Main extends Application {
         card.getStyleClass().add("stat-card");
         card.setStyle("-fx-border-color: " + color + "40; -fx-background-color: " + color + "15;");
         card.setPadding(new Insets(20));
+        card.setPrefHeight(120);
 
         HBox header = new HBox(15);
         header.setAlignment(Pos.CENTER_LEFT);
 
         Label iconLabel = new Label(icon);
         iconLabel.getStyleClass().add("stat-icon");
+        iconLabel.setStyle("-fx-font-size: 20px;");
 
         VBox info = new VBox(5);
         info.getStyleClass().add("stat-info");
@@ -506,7 +547,7 @@ public class Main extends Application {
         titleLabel.getStyleClass().add("stat-title");
         Label valueLabel = new Label();
         valueLabel.getStyleClass().add("stat-value");
-        valueLabel.setStyle("-fx-text-fill: " + color + ";");
+        valueLabel.setStyle("-fx-text-fill: " + color + "; -fx-font-size: 24px; -fx-font-weight: bold;");
 
         // ربط القيمة بالخاصية
         valueLabel.textProperty().bind(valueProperty);
@@ -526,12 +567,12 @@ public class Main extends Application {
         try {
             // استعلام للفواتير اليوم
             ResultSet rsInvoices = DB.executeQuery(
-                    "SELECT '🧾' as icon, CONCAT('Invoice #', invoice_id, ' created - $', total_amount) as text, " +
+                    "SELECT '🧾' as icon, CONCAT('Invoice #', invoice_id, ' - $', total_amount) as text, " +
                             "DATE_FORMAT(invoice_date, '%h:%i %p') as time " +
                             "FROM salesinvoice " +
                             "WHERE DATE(invoice_date) = CURDATE() " +
                             "ORDER BY invoice_date DESC " +
-                            "LIMIT 3"
+                            "LIMIT 5"
             );
 
             if (rsInvoices != null) {
@@ -542,52 +583,19 @@ public class Main extends Application {
                     HBox activityItem = createActivityItem(icon, text, time);
                     activityListContainer.getChildren().add(activityItem);
                 }
+                rsInvoices.close();
             }
 
-            // استعلام للعملاء الجدد
-            ResultSet rsCustomers = DB.executeQuery(
-                    "SELECT '👥' as icon, CONCAT('New customer: ', full_name) as text, " +
-                            "'Today' as time " +
-                            "FROM customer " +
-                            "ORDER BY customer_id DESC LIMIT 3"
-            );
-
-            if (rsCustomers != null) {
-                while (rsCustomers.next()) {
-                    String icon = rsCustomers.getString("icon");
-                    String text = rsCustomers.getString("text");
-                    String time = rsCustomers.getString("time");
-                    HBox activityItem = createActivityItem(icon, text, time);
-                    activityListContainer.getChildren().add(activityItem);
-                }
-            }
-
-            // استعلام للمركبات الجديدة
-            ResultSet rsVehicles = DB.executeQuery(
-                    "SELECT '🚗' as icon, CONCAT('New vehicle: ', plate_number) as text, " +
-                            "'Today' as time " +
-                            "FROM vehicle " +
-                            "ORDER BY vehicle_id DESC LIMIT 3"
-            );
-
-            if (rsVehicles != null) {
-                while (rsVehicles.next()) {
-                    String icon = rsVehicles.getString("icon");
-                    String text = rsVehicles.getString("text");
-                    String time = rsVehicles.getString("time");
-                    HBox activityItem = createActivityItem(icon, text, time);
-                    activityListContainer.getChildren().add(activityItem);
-                }
+            // إذا لم توجد نشاطات
+            if (activityListContainer.getChildren().isEmpty()) {
+                HBox noActivity = createActivityItem("📝", "No recent activity today", "Check back later");
+                activityListContainer.getChildren().add(noActivity);
             }
 
         } catch (Exception e) {
             e.printStackTrace();
-        }
-
-        // إذا لم توجد نشاطات
-        if (activityListContainer.getChildren().isEmpty()) {
-            HBox noActivity = createActivityItem("📝", "No recent activity today", "Check back later");
-            activityListContainer.getChildren().add(noActivity);
+            HBox errorItem = createActivityItem("⚠️", "Error loading activities", "Try again");
+            activityListContainer.getChildren().add(errorItem);
         }
     }
 
@@ -595,9 +603,11 @@ public class Main extends Application {
         HBox item = new HBox(15);
         item.getStyleClass().add("activity-item");
         item.setAlignment(Pos.CENTER_LEFT);
+        item.setPadding(new Insets(10));
 
         Label iconLabel = new Label(icon);
         iconLabel.getStyleClass().add("activity-icon");
+        iconLabel.setStyle("-fx-font-size: 18px;");
 
         VBox content = new VBox(3);
         content.getStyleClass().add("activity-content");
@@ -614,18 +624,21 @@ public class Main extends Application {
     private Button createActionButton(String text, String icon) {
         Button btn = new Button();
         btn.getStyleClass().add("action-btn");
-        btn.setPrefSize(120, 100);
+        btn.setPrefSize(150, 100);
+        btn.setMaxSize(150, 100);
 
         VBox content = new VBox(10);
         content.setAlignment(Pos.CENTER);
 
         Label iconLabel = new Label(icon);
         iconLabel.getStyleClass().add("action-icon");
+        iconLabel.setStyle("-fx-font-size: 32px;");
 
         Label textLabel = new Label(text);
         textLabel.getStyleClass().add("action-text");
         textLabel.setWrapText(true);
         textLabel.setAlignment(Pos.CENTER);
+        textLabel.setMaxWidth(120);
 
         content.getChildren().addAll(iconLabel, textLabel);
         btn.setGraphic(content);
@@ -652,6 +665,19 @@ public class Main extends Application {
         Platform.runLater(() -> {
             DashboardManager.getInstance().refreshAllStats();
         });
+    }
+
+    private void showConnectionError() {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle("Database Connection Error");
+        alert.setHeaderText("Cannot connect to database");
+        alert.setContentText("Please check:\n" +
+                "1. MySQL server is running\n" +
+                "2. Database 'car_workshop_db' exists\n" +
+                "3. Username and password are correct\n" +
+                "4. MySQL connector is in classpath");
+        alert.showAndWait();
+        Platform.exit();
     }
 
     public static void main(String[] args) {
