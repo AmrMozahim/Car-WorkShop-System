@@ -6,6 +6,7 @@ import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.*;
 import java.sql.ResultSet;
 import java.sql.PreparedStatement;
+import java.sql.SQLException;
 
 public class CustomerTab extends BorderPane {
 
@@ -53,7 +54,7 @@ public class CustomerTab extends BorderPane {
         formBox.getStyleClass().add("form-box");
         formBox.setPrefWidth(350);
 
-        Label formTitle = new Label("Add New Customer");
+        Label formTitle = new Label("Customer Information");
         formTitle.getStyleClass().add("form-title");
 
         // Name Field
@@ -98,13 +99,29 @@ public class CustomerTab extends BorderPane {
 
         btnAdd = new Button("Add Customer");
         btnAdd.getStyleClass().add("btn-primary");
-        btnAdd.setOnAction(e -> addCustomer());
+        btnAdd.setOnAction(e -> {
+            if (editingCustomer != null) {
+                updateCustomer(editingCustomer);
+            } else {
+                addCustomer();
+            }
+        });
 
         Button btnClear = new Button("Clear");
         btnClear.getStyleClass().add("btn-secondary");
         btnClear.setOnAction(e -> clearFields());
 
-        formButtons.getChildren().addAll(btnAdd, btnClear);
+        Button btnCancelEdit = new Button("Cancel Edit");
+        btnCancelEdit.getStyleClass().add("btn-secondary");
+        btnCancelEdit.setVisible(false);
+        btnCancelEdit.setOnAction(e -> {
+            editingCustomer = null;
+            clearFields();
+            btnAdd.setText("Add Customer");
+            btnCancelEdit.setVisible(false);
+        });
+
+        formButtons.getChildren().addAll(btnAdd, btnClear, btnCancelEdit);
 
         formBox.getChildren().addAll(formTitle, nameBox, phoneBox, emailBox, addressBox, formButtons);
         content.add(formBox, 0, 0);
@@ -227,12 +244,6 @@ public class CustomerTab extends BorderPane {
     }
 
     private void addCustomer() {
-        // التحقق مما إذا كان في وضع التعديل
-        if (editingCustomer != null) {
-            updateCustomer(editingCustomer);
-            return;
-        }
-
         String name = txtName.getText().trim();
         String phone = txtPhone.getText().trim();
         String email = txtEmail.getText().trim();
@@ -247,6 +258,11 @@ public class CustomerTab extends BorderPane {
             PreparedStatement pstmt = DB.prepareStatement(
                     "INSERT INTO customer (full_name, phone, email, address) VALUES (?, ?, ?, ?)"
             );
+            if (pstmt == null) {
+                showAlert("Error", "Failed to prepare statement. Check database connection.");
+                return;
+            }
+
             pstmt.setString(1, name);
             pstmt.setString(2, phone);
             pstmt.setString(3, email);
@@ -258,9 +274,14 @@ public class CustomerTab extends BorderPane {
                 clearFields();
                 loadCustomers();
 
-                CustomerManager.getInstance().refresh();
-                CustomerManager.getInstance().addCustomer(name);
-                Main.refreshDashboardGlobal();
+                // Refresh other components if they exist
+                try {
+                    CustomerManager.getInstance().refresh();
+                    CustomerManager.getInstance().addCustomer(name);
+                    Main.refreshDashboardGlobal();
+                } catch (Exception e) {
+                    // These might not exist, just continue
+                }
             } else {
                 showAlert("Error", "Failed to add customer");
             }
@@ -285,6 +306,11 @@ public class CustomerTab extends BorderPane {
             PreparedStatement pstmt = DB.prepareStatement(
                     "UPDATE customer SET full_name=?, phone=?, email=?, address=? WHERE customer_id=?"
             );
+            if (pstmt == null) {
+                showAlert("Error", "Failed to prepare statement. Check database connection.");
+                return;
+            }
+
             pstmt.setString(1, name);
             pstmt.setString(2, phone);
             pstmt.setString(3, email);
@@ -296,10 +322,24 @@ public class CustomerTab extends BorderPane {
                 showAlert("Success", "Customer updated successfully");
                 clearFields();
                 loadCustomers();
-                CustomerManager.getInstance().refresh();
-                Main.refreshDashboardGlobal();
+
+                // Reset editing state
+                editingCustomer = null;
+                btnAdd.setText("Add Customer");
+                HBox formButtons = (HBox) ((VBox) txtAddress.getParent().getParent().getParent())
+                        .getChildren().get(5);
+                Button btnCancelEdit = (Button) formButtons.getChildren().get(2);
+                btnCancelEdit.setVisible(false);
+
+                // Refresh other components if they exist
+                try {
+                    CustomerManager.getInstance().refresh();
+                    Main.refreshDashboardGlobal();
+                } catch (Exception e) {
+                    // These might not exist, just continue
+                }
             } else {
-                showAlert("Error", "Failed to update customer");
+                showAlert("Error", "Failed to update customer. Customer may not exist.");
             }
         } catch (Exception e) {
             showAlert("Error", "Error updating customer: " + e.getMessage());
@@ -316,6 +356,12 @@ public class CustomerTab extends BorderPane {
         txtAddress.setText(customer.getAddress());
 
         btnAdd.setText("Update Customer");
+
+        // Show cancel edit button
+        HBox formButtons = (HBox) ((VBox) txtAddress.getParent().getParent().getParent())
+                .getChildren().get(5);
+        Button btnCancelEdit = (Button) formButtons.getChildren().get(2);
+        btnCancelEdit.setVisible(true);
     }
 
     private void deleteCustomer(Customer customer) {
@@ -336,32 +382,33 @@ public class CustomerTab extends BorderPane {
                 try {
                     int customerId = customer.getCustomerId();
 
-                    // 1. حذف سجلات service_sparepart المرتبطة
+                    // Use transaction or individual deletes
+                    // 1. Delete service_sparepart records
                     DB.executeUpdate(
                             "DELETE FROM service_sparepart WHERE vehicle_service_id IN (" +
                                     "SELECT vehicle_service_id FROM vehicle_service WHERE vehicle_id IN (" +
                                     "SELECT vehicle_id FROM vehicle WHERE customer_id = " + customerId + "))"
                     );
 
-                    // 2. حذف سجلات vehicle_service
+                    // 2. Delete vehicle_service records
                     DB.executeUpdate(
                             "DELETE FROM vehicle_service WHERE vehicle_id IN (" +
                                     "SELECT vehicle_id FROM vehicle WHERE customer_id = " + customerId + ")"
                     );
 
-                    // 3. حذف المركبات
+                    // 3. Delete vehicles
                     DB.executeUpdate("DELETE FROM vehicle WHERE customer_id = " + customerId);
 
-                    // 4. حذف عناصر الفواتير
+                    // 4. Delete invoice items
                     DB.executeUpdate(
                             "DELETE FROM salesinvoiceitems WHERE invoice_id IN (" +
                                     "SELECT invoice_id FROM salesinvoice WHERE customer_id = " + customerId + ")"
                     );
 
-                    // 5. حذف الفواتير
+                    // 5. Delete invoices
                     DB.executeUpdate("DELETE FROM salesinvoice WHERE customer_id = " + customerId);
 
-                    // 6. حذف العميل
+                    // 6. Delete customer
                     PreparedStatement pstmt = DB.prepareStatement(
                             "DELETE FROM customer WHERE customer_id = ?"
                     );
@@ -371,9 +418,20 @@ public class CustomerTab extends BorderPane {
                     if (result > 0) {
                         showAlert("Success", "Customer and all associated records deleted successfully");
                         loadCustomers();
-                        CustomerManager.getInstance().refresh();
-                        CustomerManager.getInstance().removeCustomer(customer.getFullName());
-                        Main.refreshDashboardGlobal();
+
+                        // If we were editing this customer, clear the form
+                        if (editingCustomer != null && editingCustomer.getCustomerId() == customerId) {
+                            clearFields();
+                        }
+
+                        // Refresh other components if they exist
+                        try {
+                            CustomerManager.getInstance().refresh();
+                            CustomerManager.getInstance().removeCustomer(customer.getFullName());
+                            Main.refreshDashboardGlobal();
+                        } catch (Exception e) {
+                            // These might not exist, just continue
+                        }
                     }
                 } catch (Exception e) {
                     showAlert("Error", "Error deleting customer: " + e.getMessage());
@@ -384,8 +442,6 @@ public class CustomerTab extends BorderPane {
     }
 
     private void clearFields() {
-        editingCustomer = null;
-        btnAdd.setText("Add Customer");
         txtName.clear();
         txtPhone.clear();
         txtEmail.clear();

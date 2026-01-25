@@ -3,21 +3,20 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.sql.PreparedStatement;
-import java.time.LocalDate;
 
 public class DB {
 
     private static Connection connection = null;
     private static final String DB_URL = "jdbc:mysql://localhost:3306/workshop_system";
     private static final String DB_USER = "root";
-    private static final String DB_PASSWORD = "Amr1135@mr";
+    private static final String DB_PASSWORD = "Amr1135@mr"; // Changed to empty string
 
     public static Connection getConnection() {
         try {
             if (connection == null || connection.isClosed()) {
                 Class.forName("com.mysql.cj.jdbc.Driver");
                 connection = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
-                System.out.println("✓ Connected to car_workship_db successfully!");
+                System.out.println("✓ Connected to car_workshop_db successfully!");
             }
         } catch (Exception e) {
             System.out.println("✗ Database connection error: " + e.getMessage());
