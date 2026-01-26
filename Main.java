@@ -209,19 +209,10 @@ public class Main extends Application {
         mainTabPane.getStyleClass().add("tab-pane-modern");
         mainTabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
 
-        // CRITICAL: Ensure TabPane expands properly
-        mainTabPane.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
-        mainTabPane.setPrefSize(Region.USE_COMPUTED_SIZE, Region.USE_COMPUTED_SIZE);
-        mainTabPane.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
-
         // Create and add tabs
         createTabs();
 
-        // Wrap the TabPane in a StackPane to ensure proper resizing
-        StackPane tabPaneWrapper = new StackPane(mainTabPane);
-        tabPaneWrapper.setPadding(new Insets(0));
-
-        root.setCenter(tabPaneWrapper);
+        root.setCenter(mainTabPane);
 
         Scene scene = new Scene(root, 1200, 700);
         scene.getStylesheets().add("style.css");
@@ -246,26 +237,18 @@ public class Main extends Application {
         dashboardTab.setClosable(false);
         dashboardTab.setText("Dashboard");
 
-        ScrollPane dashboardScroll = createDashboardContent();
-        dashboardScroll.setFitToWidth(true);
-        dashboardScroll.setFitToHeight(true);
-
-        StackPane dashboardWrapper = new StackPane(dashboardScroll);
-        dashboardWrapper.setPadding(new Insets(0));
-        dashboardTab.setContent(dashboardWrapper);
+        ScrollPane dashboardContent = createDashboardContent();
+        dashboardTab.setContent(dashboardContent);
         mainTabPane.getTabs().add(dashboardTab);
         tabs.put("dashboard", dashboardTab);
 
-        // Customers Tab - Using StackPane wrapper
+        // Customers Tab
         Tab customersTab = new Tab();
         customersTab.setId("customers");
         customersTab.setClosable(false);
         customersTab.setText("Customers");
-
         CustomerTab customerTabContent = new CustomerTab();
-        StackPane customerWrapper = new StackPane(customerTabContent);
-        customerWrapper.setPadding(new Insets(0));
-        customersTab.setContent(customerWrapper);
+        customersTab.setContent(customerTabContent);
         mainTabPane.getTabs().add(customersTab);
         tabs.put("customers", customersTab);
 
@@ -274,11 +257,8 @@ public class Main extends Application {
         vehiclesTab.setId("vehicles");
         vehiclesTab.setClosable(false);
         vehiclesTab.setText("Vehicles");
-
         VehicleTab vehicleTabContent = new VehicleTab();
-        StackPane vehicleWrapper = new StackPane(vehicleTabContent);
-        vehicleWrapper.setPadding(new Insets(0));
-        vehiclesTab.setContent(vehicleWrapper);
+        vehiclesTab.setContent(vehicleTabContent);
         mainTabPane.getTabs().add(vehiclesTab);
         tabs.put("vehicles", vehiclesTab);
 
@@ -287,11 +267,8 @@ public class Main extends Application {
         mechanicsTab.setId("mechanics");
         mechanicsTab.setClosable(false);
         mechanicsTab.setText("Mechanics");
-
         MechanicTab mechanicTabContent = new MechanicTab();
-        StackPane mechanicWrapper = new StackPane(mechanicTabContent);
-        mechanicWrapper.setPadding(new Insets(0));
-        mechanicsTab.setContent(mechanicWrapper);
+        mechanicsTab.setContent(mechanicTabContent);
         mainTabPane.getTabs().add(mechanicsTab);
         tabs.put("mechanics", mechanicsTab);
 
@@ -300,11 +277,8 @@ public class Main extends Application {
         servicesTab.setId("services");
         servicesTab.setClosable(false);
         servicesTab.setText("Services");
-
         ServiceTab serviceTabContent = new ServiceTab();
-        StackPane serviceWrapper = new StackPane(serviceTabContent);
-        serviceWrapper.setPadding(new Insets(0));
-        servicesTab.setContent(serviceWrapper);
+        servicesTab.setContent(serviceTabContent);
         mainTabPane.getTabs().add(servicesTab);
         tabs.put("services", servicesTab);
 
@@ -313,11 +287,8 @@ public class Main extends Application {
         partsTab.setId("parts");
         partsTab.setClosable(false);
         partsTab.setText("Parts");
-
         PartsTab partsTabContent = new PartsTab();
-        StackPane partsWrapper = new StackPane(partsTabContent);
-        partsWrapper.setPadding(new Insets(0));
-        partsTab.setContent(partsWrapper);
+        partsTab.setContent(partsTabContent);
         mainTabPane.getTabs().add(partsTab);
         tabs.put("parts", partsTab);
 
@@ -326,11 +297,8 @@ public class Main extends Application {
         invoicesTab.setId("invoices");
         invoicesTab.setClosable(false);
         invoicesTab.setText("Invoices");
-
         InvoiceTab invoiceTabContent = new InvoiceTab();
-        StackPane invoiceWrapper = new StackPane(invoiceTabContent);
-        invoiceWrapper.setPadding(new Insets(0));
-        invoicesTab.setContent(invoiceWrapper);
+        invoicesTab.setContent(invoiceTabContent);
         mainTabPane.getTabs().add(invoicesTab);
         tabs.put("invoices", invoicesTab);
 
@@ -339,11 +307,8 @@ public class Main extends Application {
         suppliersTab.setId("suppliers");
         suppliersTab.setClosable(false);
         suppliersTab.setText("Suppliers");
-
         SupplierTab supplierTabContent = new SupplierTab();
-        StackPane supplierWrapper = new StackPane(supplierTabContent);
-        supplierWrapper.setPadding(new Insets(0));
-        suppliersTab.setContent(supplierWrapper);
+        suppliersTab.setContent(supplierTabContent);
         mainTabPane.getTabs().add(suppliersTab);
         tabs.put("suppliers", suppliersTab);
 
@@ -352,11 +317,8 @@ public class Main extends Application {
         purchasesTab.setId("purchases");
         purchasesTab.setClosable(false);
         purchasesTab.setText("Purchases");
-
         PurchaseTab purchaseTabContent = new PurchaseTab();
-        StackPane purchaseWrapper = new StackPane(purchaseTabContent);
-        purchaseWrapper.setPadding(new Insets(0));
-        purchasesTab.setContent(purchaseWrapper);
+        purchasesTab.setContent(purchaseTabContent);
         mainTabPane.getTabs().add(purchasesTab);
         tabs.put("purchases", purchasesTab);
 
@@ -365,11 +327,8 @@ public class Main extends Application {
         workHoursTab.setId("workhours");
         workHoursTab.setClosable(false);
         workHoursTab.setText("Work Hours");
-
         MechanicWorkHoursTab workHoursTabContent = new MechanicWorkHoursTab();
-        StackPane workHoursWrapper = new StackPane(workHoursTabContent);
-        workHoursWrapper.setPadding(new Insets(0));
-        workHoursTab.setContent(workHoursWrapper);
+        workHoursTab.setContent(workHoursTabContent);
         mainTabPane.getTabs().add(workHoursTab);
         tabs.put("workhours", workHoursTab);
 
@@ -378,11 +337,8 @@ public class Main extends Application {
         reportsTab.setId("reports");
         reportsTab.setClosable(false);
         reportsTab.setText("Reports");
-
         ReportTab reportTabContent = new ReportTab();
-        StackPane reportWrapper = new StackPane(reportTabContent);
-        reportWrapper.setPadding(new Insets(0));
-        reportsTab.setContent(reportWrapper);
+        reportsTab.setContent(reportTabContent);
         mainTabPane.getTabs().add(reportsTab);
         tabs.put("reports", reportsTab);
     }

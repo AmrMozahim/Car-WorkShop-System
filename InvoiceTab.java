@@ -41,20 +41,22 @@ public class InvoiceTab extends BorderPane {
         header.getChildren().addAll(title, subtitle);
         setTop(header);
 
-        GridPane content = new GridPane();
+        // Use HBox instead of GridPane
+        HBox content = new HBox(25);
         content.getStyleClass().add("window-content");
-        content.setPadding(new Insets(25));
-        content.setVgap(20);
-        content.setHgap(20);
+        content.setPadding(new Insets(20));
 
-        VBox formBox = new VBox(20);
+        // Left Side - Form
+        VBox formBox = new VBox(15); // Reduced spacing
         formBox.getStyleClass().add("form-box");
-        formBox.setPrefWidth(400);
+        formBox.setPrefWidth(320);
+        formBox.setMinWidth(300);
+        formBox.setMaxWidth(350);
 
         Label formTitle = new Label("Create New Invoice");
         formTitle.getStyleClass().add("form-title");
 
-        VBox customerBox = new VBox(8);
+        VBox customerBox = new VBox(5); // Reduced spacing
         customerBox.getStyleClass().add("form-group");
         Label lblCustomer = new Label("Customer *");
         lblCustomer.getStyleClass().add("field-label");
@@ -77,62 +79,71 @@ public class InvoiceTab extends BorderPane {
         customerRow.getChildren().addAll(cmbCustomer, btnRefreshCustomers);
         customerBox.getChildren().addAll(lblCustomer, customerRow);
 
-        VBox partsBox = new VBox(8);
+        VBox partsBox = new VBox(5);
         partsBox.getStyleClass().add("form-group");
         Label lblParts = new Label("Parts");
 
         HBox partsControls = new HBox(10);
         lstParts.getStyleClass().add("field-list");
-        lstParts.setPrefHeight(150);
+        lstParts.setPrefHeight(120); // Reduced
+        lstParts.setMaxHeight(130);
 
         Button btnAddPart = new Button("Add Part");
         btnAddPart.getStyleClass().add("btn-secondary");
+        btnAddPart.setPrefWidth(90);
         btnAddPart.setOnAction(e -> addPart());
 
         Button btnRemovePart = new Button("Remove");
         btnRemovePart.getStyleClass().add("btn-secondary");
+        btnRemovePart.setPrefWidth(90);
         btnRemovePart.setOnAction(e -> removePart());
 
         partsControls.getChildren().addAll(btnAddPart, btnRemovePart);
         partsBox.getChildren().addAll(lblParts, lstParts, partsControls);
 
-        VBox totalBox = new VBox(8);
+        VBox totalBox = new VBox(5);
         totalBox.getStyleClass().add("form-group");
         Label lblTotal = new Label("Total Amount ($)");
         txtTotal.getStyleClass().add("field-input");
         txtTotal.setPromptText("0.00");
         txtTotal.setEditable(false);
+        txtTotal.setPrefHeight(32);
         totalBox.getChildren().addAll(lblTotal, txtTotal);
 
-        VBox dateBox = new VBox(8);
+        VBox dateBox = new VBox(5);
         dateBox.getStyleClass().add("form-group");
         Label lblDate = new Label("Date");
         datePicker.getStyleClass().add("field-combo");
         dateBox.getChildren().addAll(lblDate, datePicker);
 
-        HBox formButtons = new HBox(15);
+        HBox formButtons = new HBox(10); // Reduced spacing
         formButtons.getStyleClass().add("form-buttons");
 
         Button btnCreate = new Button("Create Invoice");
         btnCreate.getStyleClass().add("btn-primary");
+        btnCreate.setPrefWidth(120);
         btnCreate.setOnAction(e -> createInvoice());
 
         Button btnClear = new Button("Clear");
         btnClear.getStyleClass().add("btn-secondary");
+        btnClear.setPrefWidth(80);
         btnClear.setOnAction(e -> clearFields());
 
-        Button btnCalculate = new Button("Calculate Total");
+        Button btnCalculate = new Button("Calculate");
         btnCalculate.getStyleClass().add("btn-primary");
+        btnCalculate.setPrefWidth(100);
         btnCalculate.setOnAction(e -> calculateTotal());
 
         formButtons.getChildren().addAll(btnCreate, btnClear, btnCalculate);
 
         formBox.getChildren().addAll(formTitle, customerBox,
                 partsBox, totalBox, dateBox, formButtons);
-        content.add(formBox, 0, 0);
+        content.getChildren().add(formBox);
 
-        VBox tableBox = new VBox(15);
+        // Right Side - Table
+        VBox tableBox = new VBox(10);
         tableBox.getStyleClass().add("table-box");
+        HBox.setHgrow(tableBox, Priority.ALWAYS);
 
         HBox tableHeader = new HBox();
         tableHeader.getStyleClass().add("table-header-box");
@@ -151,9 +162,10 @@ public class InvoiceTab extends BorderPane {
 
         createTable();
         table.setPrefHeight(400);
+        VBox.setVgrow(table, Priority.ALWAYS);
 
         tableBox.getChildren().addAll(tableHeader, table);
-        content.add(tableBox, 1, 0);
+        content.getChildren().add(tableBox);
 
         setCenter(content);
         loadInvoices();
@@ -164,27 +176,27 @@ public class InvoiceTab extends BorderPane {
 
         TableColumn<Invoice, Integer> colId = new TableColumn<>("Invoice #");
         colId.setCellValueFactory(new PropertyValueFactory<>("invoiceId"));
-        colId.setPrefWidth(100);
+        colId.setPrefWidth(80); // Reduced
 
         TableColumn<Invoice, String> colCustomer = new TableColumn<>("Customer");
         colCustomer.setCellValueFactory(new PropertyValueFactory<>("customerName"));
-        colCustomer.setPrefWidth(150);
+        colCustomer.setPrefWidth(120); // Reduced
 
         TableColumn<Invoice, String> colDate = new TableColumn<>("Date");
         colDate.setCellValueFactory(new PropertyValueFactory<>("date"));
-        colDate.setPrefWidth(100);
+        colDate.setPrefWidth(90); // Reduced
 
         TableColumn<Invoice, Double> colAmount = new TableColumn<>("Amount ($)");
         colAmount.setCellValueFactory(new PropertyValueFactory<>("amount"));
-        colAmount.setPrefWidth(120);
+        colAmount.setPrefWidth(100); // Reduced
 
         TableColumn<Invoice, String> colItems = new TableColumn<>("Items");
         colItems.setCellValueFactory(new PropertyValueFactory<>("items"));
-        colItems.setPrefWidth(200);
+        colItems.setPrefWidth(150); // Reduced
 
         TableColumn<Invoice, String> colStatus = new TableColumn<>("Status");
         colStatus.setCellValueFactory(new PropertyValueFactory<>("paymentStatus"));
-        colStatus.setPrefWidth(100);
+        colStatus.setPrefWidth(100); // Increased slightly
         colStatus.setCellFactory(column -> new TableCell<Invoice, String>() {
             @Override
             protected void updateItem(String status, boolean empty) {
@@ -194,32 +206,49 @@ public class InvoiceTab extends BorderPane {
                     setStyle("");
                 } else {
                     setText(status);
-                    if (status.equals("Unpaid")) {
-                        setStyle("-fx-text-fill: #ef4444; -fx-font-weight: bold;");
-                    } else if (status.equals("Paid")) {
-                        setStyle("-fx-text-fill: #10b981; -fx-font-weight: bold;");
-                    } else {
-                        setStyle("-fx-text-fill: #f59e0b; -fx-font-weight: bold;");
-                    }
+                    updateStatusStyle(status);
+                }
+            }
+
+            private void updateStatusStyle(String status) {
+                if (status.equals("Unpaid")) {
+                    setStyle("-fx-text-fill: #ef4444; -fx-font-weight: bold;");
+                } else if (status.equals("Paid")) {
+                    setStyle("-fx-text-fill: #10b981; -fx-font-weight: bold;");
+                } else if (status.equals("Partially Paid")) {
+                    setStyle("-fx-text-fill: #f59e0b; -fx-font-weight: bold;");
+                } else {
+                    setStyle("-fx-text-fill: #6b7280; -fx-font-weight: bold;");
                 }
             }
         });
 
         TableColumn<Invoice, Void> colActions = new TableColumn<>("Actions");
-        colActions.setPrefWidth(150);
+        colActions.setPrefWidth(260); // Increased for 3 buttons
         colActions.setCellFactory(param -> new TableCell<Invoice, Void>() {
             private final Button btnView = new Button("View");
+            private final Button btnEditStatus = new Button("Edit Status");
             private final Button btnDelete = new Button("Delete");
-            private final HBox buttons = new HBox(8, btnView, btnDelete);
+            private final HBox buttons = new HBox(8, btnView, btnEditStatus, btnDelete);
 
             {
                 btnView.getStyleClass().add("btn-table-edit");
+                btnEditStatus.getStyleClass().add("btn-table-edit");
                 btnDelete.getStyleClass().add("btn-table-delete");
                 buttons.getStyleClass().add("table-actions");
+
+                btnView.setPrefWidth(70);
+                btnEditStatus.setPrefWidth(90);
+                btnDelete.setPrefWidth(70);
 
                 btnView.setOnAction(e -> {
                     Invoice invoice = getTableView().getItems().get(getIndex());
                     viewInvoice(invoice);
+                });
+
+                btnEditStatus.setOnAction(e -> {
+                    Invoice invoice = getTableView().getItems().get(getIndex());
+                    editInvoiceStatus(invoice);
                 });
 
                 btnDelete.setOnAction(e -> {
@@ -445,11 +474,55 @@ public class InvoiceTab extends BorderPane {
         alert.setContentText(
                 "Customer: " + invoice.getCustomerName() + "\n" +
                         "Date: " + invoice.getDate() + "\n" +
-                        "Amount: $" + invoice.getAmount() + "\n" +
+                        "Amount: $" + String.format("%.2f", invoice.getAmount()) + "\n" +
                         "Status: " + invoice.getPaymentStatus() + "\n" +
                         "Items: " + invoice.getItems()
         );
         alert.showAndWait();
+    }
+
+    private void editInvoiceStatus(Invoice invoice) {
+        ChoiceDialog<String> dialog = new ChoiceDialog<>(
+                invoice.getPaymentStatus(), // Default value
+                "Unpaid", "Paid", "Partially Paid"
+        );
+
+        dialog.setTitle("Edit Payment Status");
+        dialog.setHeaderText("Invoice #" + invoice.getInvoiceId());
+        dialog.setContentText("Select new payment status:");
+
+        dialog.showAndWait().ifPresent(newStatus -> {
+            if (newStatus.equals(invoice.getPaymentStatus())) {
+                return; // No change
+            }
+
+            try {
+                // Update in database
+                String updateSql = "UPDATE salesinvoice SET payment_status = ? WHERE invoice_id = ?";
+                PreparedStatement pstmt = DB.prepareStatement(updateSql);
+                pstmt.setString(1, newStatus);
+                pstmt.setInt(2, invoice.getInvoiceId());
+
+                int result = DB.executeUpdate(pstmt);
+                if (result > 0) {
+                    // Update local invoice object
+                    invoice.setPaymentStatus(newStatus);
+
+                    // Refresh the table to show updated status
+                    table.refresh();
+
+                    showAlert("Success", "Payment status updated to: " + newStatus);
+
+                    // Refresh dashboard if needed
+                    Main.refreshDashboardGlobal();
+                } else {
+                    showAlert("Error", "Failed to update payment status");
+                }
+            } catch (Exception e) {
+                showAlert("Error", "Error updating payment status: " + e.getMessage());
+                e.printStackTrace();
+            }
+        });
     }
 
     private void deleteInvoice(Invoice invoice) {
@@ -532,5 +605,10 @@ public class InvoiceTab extends BorderPane {
         public double getAmount() { return amount; }
         public String getItems() { return items; }
         public String getPaymentStatus() { return paymentStatus; }
+
+        // Setter for payment status
+        public void setPaymentStatus(String paymentStatus) {
+            this.paymentStatus = paymentStatus;
+        }
     }
 }

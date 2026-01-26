@@ -41,21 +41,23 @@ public class PurchaseTab extends BorderPane {
         header.getChildren().addAll(title, subtitle);
         setTop(header);
 
-        GridPane content = new GridPane();
+        // Use HBox instead of GridPane
+        HBox content = new HBox(25);
         content.getStyleClass().add("window-content");
-        content.setPadding(new Insets(25));
-        content.setVgap(20);
-        content.setHgap(20);
+        content.setPadding(new Insets(20));
 
-        VBox formBox = new VBox(20);
+        // Left Side - Form
+        VBox formBox = new VBox(15); // Reduced spacing
         formBox.getStyleClass().add("form-box");
-        formBox.setPrefWidth(400);
+        formBox.setPrefWidth(320);
+        formBox.setMinWidth(300);
+        formBox.setMaxWidth(350);
 
         Label formTitle = new Label("New Purchase Invoice");
         formTitle.getStyleClass().add("form-title");
 
         // Supplier Selection
-        VBox supplierBox = new VBox(8);
+        VBox supplierBox = new VBox(5); // Reduced spacing
         supplierBox.getStyleClass().add("form-group");
         Label lblSupplier = new Label("Supplier *");
         lblSupplier.getStyleClass().add("field-label");
@@ -79,64 +81,72 @@ public class PurchaseTab extends BorderPane {
         supplierBox.getChildren().addAll(lblSupplier, supplierRow);
 
         // Parts Selection
-        VBox partsBox = new VBox(8);
+        VBox partsBox = new VBox(5);
         partsBox.getStyleClass().add("form-group");
         Label lblParts = new Label("Parts to Purchase");
 
         HBox partsControls = new HBox(10);
         lstParts.getStyleClass().add("field-list");
-        lstParts.setPrefHeight(150);
+        lstParts.setPrefHeight(120); // Reduced
+        lstParts.setMaxHeight(130);
 
         Button btnAddPart = new Button("Add Part");
         btnAddPart.getStyleClass().add("btn-secondary");
+        btnAddPart.setPrefWidth(90);
         btnAddPart.setOnAction(e -> addPurchasePart());
 
         Button btnRemovePart = new Button("Remove");
         btnRemovePart.getStyleClass().add("btn-secondary");
+        btnRemovePart.setPrefWidth(90);
         btnRemovePart.setOnAction(e -> removePurchasePart());
 
         partsControls.getChildren().addAll(btnAddPart, btnRemovePart);
         partsBox.getChildren().addAll(lblParts, lstParts, partsControls);
 
         // Total and Date
-        VBox totalBox = new VBox(8);
+        VBox totalBox = new VBox(5);
         totalBox.getStyleClass().add("form-group");
         Label lblTotal = new Label("Total Amount ($)");
         txtTotal.getStyleClass().add("field-input");
         txtTotal.setPromptText("0.00");
         txtTotal.setEditable(false);
+        txtTotal.setPrefHeight(32);
         totalBox.getChildren().addAll(lblTotal, txtTotal);
 
-        VBox dateBox = new VBox(8);
+        VBox dateBox = new VBox(5);
         dateBox.getStyleClass().add("form-group");
         Label lblDate = new Label("Purchase Date");
         datePicker.getStyleClass().add("field-combo");
         dateBox.getChildren().addAll(lblDate, datePicker);
 
         // Buttons
-        HBox formButtons = new HBox(15);
+        HBox formButtons = new HBox(10); // Reduced spacing
         formButtons.getStyleClass().add("form-buttons");
 
         Button btnCreate = new Button("Create Purchase");
         btnCreate.getStyleClass().add("btn-primary");
+        btnCreate.setPrefWidth(140);
         btnCreate.setOnAction(e -> createPurchaseInvoice());
 
         Button btnClear = new Button("Clear");
         btnClear.getStyleClass().add("btn-secondary");
+        btnClear.setPrefWidth(80);
         btnClear.setOnAction(e -> clearFields());
 
-        Button btnCalculate = new Button("Calculate Total");
+        Button btnCalculate = new Button("Calculate");
         btnCalculate.getStyleClass().add("btn-primary");
+        btnCalculate.setPrefWidth(100);
         btnCalculate.setOnAction(e -> calculatePurchaseTotal());
 
         formButtons.getChildren().addAll(btnCreate, btnClear, btnCalculate);
 
         formBox.getChildren().addAll(formTitle, supplierBox, partsBox, totalBox, dateBox, formButtons);
-        content.add(formBox, 0, 0);
+        content.getChildren().add(formBox);
 
-        // Table Section
-        VBox tableBox = new VBox(15);
+        // Right Side - Table
+        VBox tableBox = new VBox(10);
         tableBox.getStyleClass().add("table-box");
+        HBox.setHgrow(tableBox, Priority.ALWAYS);
 
         HBox tableHeader = new HBox();
         tableHeader.getStyleClass().add("table-header-box");
@@ -155,9 +165,10 @@ public class PurchaseTab extends BorderPane {
 
         createTable();
         table.setPrefHeight(400);
+        VBox.setVgrow(table, Priority.ALWAYS);
 
         tableBox.getChildren().addAll(tableHeader, table);
-        content.add(tableBox, 1, 0);
+        content.getChildren().add(tableBox);
 
         setCenter(content);
         loadPurchases();
@@ -168,35 +179,38 @@ public class PurchaseTab extends BorderPane {
 
         TableColumn<PurchaseInvoice, Integer> colId = new TableColumn<>("Purchase #");
         colId.setCellValueFactory(new PropertyValueFactory<>("purchaseId"));
-        colId.setPrefWidth(100);
+        colId.setPrefWidth(80); // Reduced
 
         TableColumn<PurchaseInvoice, String> colSupplier = new TableColumn<>("Supplier");
         colSupplier.setCellValueFactory(new PropertyValueFactory<>("supplierName"));
-        colSupplier.setPrefWidth(150);
+        colSupplier.setPrefWidth(120); // Reduced
 
         TableColumn<PurchaseInvoice, String> colDate = new TableColumn<>("Date");
         colDate.setCellValueFactory(new PropertyValueFactory<>("date"));
-        colDate.setPrefWidth(100);
+        colDate.setPrefWidth(90); // Reduced
 
         TableColumn<PurchaseInvoice, Double> colAmount = new TableColumn<>("Amount ($)");
         colAmount.setCellValueFactory(new PropertyValueFactory<>("amount"));
-        colAmount.setPrefWidth(120);
+        colAmount.setPrefWidth(100); // Reduced
 
         TableColumn<PurchaseInvoice, String> colItems = new TableColumn<>("Items");
         colItems.setCellValueFactory(new PropertyValueFactory<>("items"));
-        colItems.setPrefWidth(200);
+        colItems.setPrefWidth(150); // Reduced
 
         TableColumn<PurchaseInvoice, Void> colActions = new TableColumn<>("Actions");
-        colActions.setPrefWidth(150);
+        colActions.setPrefWidth(180); // Increased
         colActions.setCellFactory(param -> new TableCell<PurchaseInvoice, Void>() {
             private final Button btnView = new Button("View");
             private final Button btnDelete = new Button("Delete");
-            private final HBox buttons = new HBox(8, btnView, btnDelete);
+            private final HBox buttons = new HBox(10, btnView, btnDelete);
 
             {
                 btnView.getStyleClass().add("btn-table-edit");
                 btnDelete.getStyleClass().add("btn-table-delete");
                 buttons.getStyleClass().add("table-actions");
+
+                btnView.setPrefWidth(70);
+                btnDelete.setPrefWidth(70);
 
                 btnView.setOnAction(e -> {
                     PurchaseInvoice purchase = getTableView().getItems().get(getIndex());

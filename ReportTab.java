@@ -1,6 +1,7 @@
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.*;
@@ -33,7 +34,7 @@ public class ReportTab extends BorderPane {
 
         HBox dateRange = new HBox(15);
         dateRange.setPadding(new Insets(10, 0, 0, 0));
-        dateRange.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+        dateRange.setAlignment(Pos.CENTER_LEFT);
 
         Label lblRange = new Label("Date Range:");
         lblRange.getStyleClass().add("field-label");
@@ -51,20 +52,6 @@ public class ReportTab extends BorderPane {
         setTop(header);
 
         tabPane.getStyleClass().add("tab-pane-modern");
-
-        Tab salesTab = new Tab("Sales Report", createSalesReport());
-        salesTab.setClosable(false);
-
-        Tab inventoryTab = new Tab("Inventory Report", createInventoryReport());
-        inventoryTab.setClosable(false);
-
-        Tab customerTab = new Tab("Customer Report", createCustomerReport());
-        customerTab.setClosable(false);
-
-        Tab serviceTab = new Tab("Service Report", createServiceReport());
-        serviceTab.setClosable(false);
-
-        tabPane.getTabs().addAll(salesTab, inventoryTab, customerTab, serviceTab);
         setCenter(tabPane);
 
         refreshAllReports();
@@ -124,64 +111,7 @@ public class ReportTab extends BorderPane {
             e.printStackTrace();
         }
 
-        VBox tableBox = new VBox(15);
-        tableBox.getStyleClass().add("table-box");
-
-        Label tableTitle = new Label("Recent Invoices");
-        tableTitle.getStyleClass().add("table-title");
-
-        TableView<RecentInvoice> recentTable = new TableView<>();
-        ObservableList<RecentInvoice> recentList = FXCollections.observableArrayList();
-
-        try {
-            ResultSet rs = DB.executeQuery(
-                    "SELECT s.invoice_id, c.full_name, s.invoice_date, s.total_amount " +
-                            "FROM salesinvoice s JOIN customer c ON s.customer_id = c.customer_id " +
-                            "WHERE s.invoice_date BETWEEN '" + start + "' AND '" + end + "' " +
-                            "ORDER BY s.invoice_date DESC LIMIT 10"
-            );
-
-            if (rs != null) {
-                while (rs.next()) {
-                    recentList.add(new RecentInvoice(
-                            rs.getInt("invoice_id"),
-                            rs.getString("full_name"),
-                            rs.getString("invoice_date"),
-                            rs.getDouble("total_amount"),
-                            "Completed"
-                    ));
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        TableColumn<RecentInvoice, Integer> colId = new TableColumn<>("Invoice #");
-        colId.setCellValueFactory(new PropertyValueFactory<>("invoiceId"));
-        colId.setPrefWidth(100);
-
-        TableColumn<RecentInvoice, String> colCustomer = new TableColumn<>("Customer");
-        colCustomer.setCellValueFactory(new PropertyValueFactory<>("customer"));
-        colCustomer.setPrefWidth(150);
-
-        TableColumn<RecentInvoice, String> colDate = new TableColumn<>("Date");
-        colDate.setCellValueFactory(new PropertyValueFactory<>("date"));
-        colDate.setPrefWidth(100);
-
-        TableColumn<RecentInvoice, Double> colAmount = new TableColumn<>("Amount");
-        colAmount.setCellValueFactory(new PropertyValueFactory<>("amount"));
-        colAmount.setPrefWidth(100);
-
-        TableColumn<RecentInvoice, String> colStatus = new TableColumn<>("Status");
-        colStatus.setCellValueFactory(new PropertyValueFactory<>("status"));
-        colStatus.setPrefWidth(100);
-
-        recentTable.getColumns().addAll(colId, colCustomer, colDate, colAmount, colStatus);
-        recentTable.setItems(recentList);
-        recentTable.setPrefHeight(200);
-
-        tableBox.getChildren().addAll(tableTitle, recentTable);
-
+        VBox tableBox = createTableContainer("Recent Invoices", createRecentInvoiceTable(start, end));
         content.getChildren().addAll(statsGrid, tableBox);
         scroll.setContent(content);
 
@@ -221,57 +151,7 @@ public class ReportTab extends BorderPane {
             e.printStackTrace();
         }
 
-        VBox tableBox = new VBox(15);
-        tableBox.getStyleClass().add("table-box");
-
-        Label tableTitle = new Label("Low Stock Items (Need Reorder)");
-        tableTitle.getStyleClass().add("table-title");
-
-        TableView<LowStockItem> lowStockTable = new TableView<>();
-        ObservableList<LowStockItem> lowStockList = FXCollections.observableArrayList();
-
-        try {
-            ResultSet rs = DB.executeQuery(
-                    "SELECT part_name, quantity, price FROM sparepart " +
-                            "WHERE quantity < 10 ORDER BY quantity"
-            );
-
-            if (rs != null) {
-                while (rs.next()) {
-                    lowStockList.add(new LowStockItem(
-                            rs.getString("part_name"),
-                            rs.getInt("quantity"),
-                            rs.getDouble("price"),
-                            10
-                    ));
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        TableColumn<LowStockItem, String> colName = new TableColumn<>("Part Name");
-        colName.setCellValueFactory(new PropertyValueFactory<>("partName"));
-        colName.setPrefWidth(200);
-
-        TableColumn<LowStockItem, Integer> colQty = new TableColumn<>("Quantity");
-        colQty.setCellValueFactory(new PropertyValueFactory<>("quantity"));
-        colQty.setPrefWidth(100);
-
-        TableColumn<LowStockItem, Integer> colMin = new TableColumn<>("Min Stock");
-        colMin.setCellValueFactory(new PropertyValueFactory<>("minStock"));
-        colMin.setPrefWidth(100);
-
-        TableColumn<LowStockItem, Double> colPrice = new TableColumn<>("Price");
-        colPrice.setCellValueFactory(new PropertyValueFactory<>("price"));
-        colPrice.setPrefWidth(100);
-
-        lowStockTable.getColumns().addAll(colName, colQty, colMin, colPrice);
-        lowStockTable.setItems(lowStockList);
-        lowStockTable.setPrefHeight(200);
-
-        tableBox.getChildren().addAll(tableTitle, lowStockTable);
-
+        VBox tableBox = createTableContainer("Low Stock Items (Need Reorder)", createLowStockTable());
         content.getChildren().addAll(statsGrid, tableBox);
         scroll.setContent(content);
 
@@ -324,53 +204,7 @@ public class ReportTab extends BorderPane {
             e.printStackTrace();
         }
 
-        VBox tableBox = new VBox(15);
-        tableBox.getStyleClass().add("table-box");
-
-        Label tableTitle = new Label("Top Customers by Spending");
-        tableTitle.getStyleClass().add("table-title");
-
-        TableView<TopCustomer> topTable = new TableView<>();
-        ObservableList<TopCustomer> topList = FXCollections.observableArrayList();
-
-        try {
-            ResultSet rs = DB.executeQuery(
-                    "SELECT c.full_name, COUNT(s.invoice_id) as invoices, SUM(s.total_amount) as total " +
-                            "FROM salesinvoice s JOIN customer c ON s.customer_id = c.customer_id " +
-                            "GROUP BY c.customer_id ORDER BY total DESC LIMIT 10"
-            );
-
-            if (rs != null) {
-                while (rs.next()) {
-                    topList.add(new TopCustomer(
-                            rs.getString("full_name"),
-                            rs.getInt("invoices"),
-                            rs.getDouble("total")
-                    ));
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        TableColumn<TopCustomer, String> colName = new TableColumn<>("Customer");
-        colName.setCellValueFactory(new PropertyValueFactory<>("customerName"));
-        colName.setPrefWidth(200);
-
-        TableColumn<TopCustomer, Integer> colInvoices = new TableColumn<>("Invoices");
-        colInvoices.setCellValueFactory(new PropertyValueFactory<>("invoiceCount"));
-        colInvoices.setPrefWidth(100);
-
-        TableColumn<TopCustomer, Double> colTotal = new TableColumn<>("Total Spent");
-        colTotal.setCellValueFactory(new PropertyValueFactory<>("totalSpent"));
-        colTotal.setPrefWidth(120);
-
-        topTable.getColumns().addAll(colName, colInvoices, colTotal);
-        topTable.setItems(topList);
-        topTable.setPrefHeight(200);
-
-        tableBox.getChildren().addAll(tableTitle, topTable);
-
+        VBox tableBox = createTableContainer("Top Customers by Spending", createTopCustomerTable());
         content.getChildren().addAll(statsGrid, tableBox);
         scroll.setContent(content);
 
@@ -400,14 +234,171 @@ public class ReportTab extends BorderPane {
             e.printStackTrace();
         }
 
-        VBox tableBox = new VBox(15);
-        tableBox.getStyleClass().add("table-box");
+        VBox tableBox = createTableContainer("Available Services", createServiceTable());
+        content.getChildren().addAll(statsGrid, tableBox);
+        scroll.setContent(content);
 
-        Label tableTitle = new Label("Available Services");
+        return scroll;
+    }
+
+    private VBox createTableContainer(String title, TableView<?> table) {
+        VBox box = new VBox(15);
+        box.getStyleClass().add("table-box");
+
+        Label tableTitle = new Label(title);
         tableTitle.getStyleClass().add("table-title");
 
-        TableView<ServiceData> serviceTable = new TableView<>();
-        ObservableList<ServiceData> serviceList = FXCollections.observableArrayList();
+        box.getChildren().addAll(tableTitle, table);
+        return box;
+    }
+
+    private TableView<RecentInvoice> createRecentInvoiceTable(String start, String end) {
+        TableView<RecentInvoice> table = new TableView<>();
+        ObservableList<RecentInvoice> list = FXCollections.observableArrayList();
+
+        try {
+            ResultSet rs = DB.executeQuery(
+                    "SELECT s.invoice_id, c.full_name, s.invoice_date, s.total_amount " +
+                            "FROM salesinvoice s JOIN customer c ON s.customer_id = c.customer_id " +
+                            "WHERE s.invoice_date BETWEEN '" + start + "' AND '" + end + "' " +
+                            "ORDER BY s.invoice_date DESC LIMIT 10"
+            );
+
+            if (rs != null) {
+                while (rs.next()) {
+                    list.add(new RecentInvoice(
+                            rs.getInt("invoice_id"),
+                            rs.getString("full_name"),
+                            rs.getString("invoice_date"),
+                            rs.getDouble("total_amount"),
+                            "Completed"
+                    ));
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        TableColumn<RecentInvoice, Integer> colId = new TableColumn<>("Invoice #");
+        colId.setCellValueFactory(new PropertyValueFactory<>("invoiceId"));
+        colId.setPrefWidth(100);
+
+        TableColumn<RecentInvoice, String> colCustomer = new TableColumn<>("Customer");
+        colCustomer.setCellValueFactory(new PropertyValueFactory<>("customer"));
+        colCustomer.setPrefWidth(150);
+
+        TableColumn<RecentInvoice, String> colDate = new TableColumn<>("Date");
+        colDate.setCellValueFactory(new PropertyValueFactory<>("date"));
+        colDate.setPrefWidth(100);
+
+        TableColumn<RecentInvoice, Double> colAmount = new TableColumn<>("Amount");
+        colAmount.setCellValueFactory(new PropertyValueFactory<>("amount"));
+        colAmount.setPrefWidth(100);
+
+        TableColumn<RecentInvoice, String> colStatus = new TableColumn<>("Status");
+        colStatus.setCellValueFactory(new PropertyValueFactory<>("status"));
+        colStatus.setPrefWidth(100);
+
+        table.getColumns().addAll(colId, colCustomer, colDate, colAmount, colStatus);
+        table.setItems(list);
+        table.setPrefHeight(200);
+
+        return table;
+    }
+
+    private TableView<LowStockItem> createLowStockTable() {
+        TableView<LowStockItem> table = new TableView<>();
+        ObservableList<LowStockItem> list = FXCollections.observableArrayList();
+
+        try {
+            ResultSet rs = DB.executeQuery(
+                    "SELECT part_name, quantity, price FROM sparepart " +
+                            "WHERE quantity < 10 ORDER BY quantity"
+            );
+
+            if (rs != null) {
+                while (rs.next()) {
+                    list.add(new LowStockItem(
+                            rs.getString("part_name"),
+                            rs.getInt("quantity"),
+                            rs.getDouble("price"),
+                            10
+                    ));
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        TableColumn<LowStockItem, String> colName = new TableColumn<>("Part Name");
+        colName.setCellValueFactory(new PropertyValueFactory<>("partName"));
+        colName.setPrefWidth(200);
+
+        TableColumn<LowStockItem, Integer> colQty = new TableColumn<>("Quantity");
+        colQty.setCellValueFactory(new PropertyValueFactory<>("quantity"));
+        colQty.setPrefWidth(100);
+
+        TableColumn<LowStockItem, Integer> colMin = new TableColumn<>("Min Stock");
+        colMin.setCellValueFactory(new PropertyValueFactory<>("minStock"));
+        colMin.setPrefWidth(100);
+
+        TableColumn<LowStockItem, Double> colPrice = new TableColumn<>("Price");
+        colPrice.setCellValueFactory(new PropertyValueFactory<>("price"));
+        colPrice.setPrefWidth(100);
+
+        table.getColumns().addAll(colName, colQty, colMin, colPrice);
+        table.setItems(list);
+        table.setPrefHeight(200);
+
+        return table;
+    }
+
+    private TableView<TopCustomer> createTopCustomerTable() {
+        TableView<TopCustomer> table = new TableView<>();
+        ObservableList<TopCustomer> list = FXCollections.observableArrayList();
+
+        try {
+            ResultSet rs = DB.executeQuery(
+                    "SELECT c.full_name, COUNT(s.invoice_id) as invoices, SUM(s.total_amount) as total " +
+                            "FROM salesinvoice s JOIN customer c ON s.customer_id = c.customer_id " +
+                            "GROUP BY c.customer_id ORDER BY total DESC LIMIT 10"
+            );
+
+            if (rs != null) {
+                while (rs.next()) {
+                    list.add(new TopCustomer(
+                            rs.getString("full_name"),
+                            rs.getInt("invoices"),
+                            rs.getDouble("total")
+                    ));
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        TableColumn<TopCustomer, String> colName = new TableColumn<>("Customer");
+        colName.setCellValueFactory(new PropertyValueFactory<>("customerName"));
+        colName.setPrefWidth(200);
+
+        TableColumn<TopCustomer, Integer> colInvoices = new TableColumn<>("Invoices");
+        colInvoices.setCellValueFactory(new PropertyValueFactory<>("invoiceCount"));
+        colInvoices.setPrefWidth(100);
+
+        TableColumn<TopCustomer, Double> colTotal = new TableColumn<>("Total Spent");
+        colTotal.setCellValueFactory(new PropertyValueFactory<>("totalSpent"));
+        colTotal.setPrefWidth(120);
+
+        table.getColumns().addAll(colName, colInvoices, colTotal);
+        table.setItems(list);
+        table.setPrefHeight(200);
+
+        return table;
+    }
+
+    private TableView<ServiceData> createServiceTable() {
+        TableView<ServiceData> table = new TableView<>();
+        ObservableList<ServiceData> list = FXCollections.observableArrayList();
 
         try {
             ResultSet rs = DB.executeQuery(
@@ -416,7 +407,7 @@ public class ReportTab extends BorderPane {
 
             if (rs != null) {
                 while (rs.next()) {
-                    serviceList.add(new ServiceData(
+                    list.add(new ServiceData(
                             rs.getString("service_name"),
                             rs.getDouble("price")
                     ));
@@ -434,16 +425,11 @@ public class ReportTab extends BorderPane {
         colPrice.setCellValueFactory(new PropertyValueFactory<>("price"));
         colPrice.setPrefWidth(100);
 
-        serviceTable.getColumns().addAll(colName, colPrice);
-        serviceTable.setItems(serviceList);
-        serviceTable.setPrefHeight(200);
+        table.getColumns().addAll(colName, colPrice);
+        table.setItems(list);
+        table.setPrefHeight(200);
 
-        tableBox.getChildren().addAll(tableTitle, serviceTable);
-
-        content.getChildren().addAll(statsGrid, tableBox);
-        scroll.setContent(content);
-
-        return scroll;
+        return table;
     }
 
     private VBox createReportStat(String title, String value, String color) {
@@ -465,16 +451,18 @@ public class ReportTab extends BorderPane {
 
     private void refreshAllReports() {
         tabPane.getTabs().clear();
-        tabPane.getTabs().addAll(
-                new Tab("Sales Report", createSalesReport()),
-                new Tab("Inventory Report", createInventoryReport()),
-                new Tab("Customer Report", createCustomerReport()),
-                new Tab("Service Report", createServiceReport())
-        );
 
-        for (Tab tab : tabPane.getTabs()) {
-            tab.setClosable(false);
-        }
+        Tab salesTab = new Tab("Sales Report", createSalesReport());
+        Tab inventoryTab = new Tab("Inventory Report", createInventoryReport());
+        Tab customerTab = new Tab("Customer Report", createCustomerReport());
+        Tab serviceTab = new Tab("Service Report", createServiceReport());
+
+        salesTab.setClosable(false);
+        inventoryTab.setClosable(false);
+        customerTab.setClosable(false);
+        serviceTab.setClosable(false);
+
+        tabPane.getTabs().addAll(salesTab, inventoryTab, customerTab, serviceTab);
     }
 
     private String formatCurrency(double amount) {

@@ -41,52 +41,58 @@ public class PartsTab extends BorderPane {
         header.getChildren().addAll(title, subtitle);
         setTop(header);
 
-        GridPane content = new GridPane();
+        // Use HBox instead of GridPane
+        HBox content = new HBox(25);
         content.getStyleClass().add("window-content");
-        content.setPadding(new Insets(25));
-        content.setVgap(20);
-        content.setHgap(20);
+        content.setPadding(new Insets(20));
 
-        VBox formBox = new VBox(20);
+        // Left Side - Form
+        VBox formBox = new VBox(15); // Reduced spacing
         formBox.getStyleClass().add("form-box");
-        formBox.setPrefWidth(350);
+        formBox.setPrefWidth(320);
+        formBox.setMinWidth(300);
+        formBox.setMaxWidth(350);
 
         Label formTitle = new Label("Add New Part");
         formTitle.getStyleClass().add("form-title");
 
-        VBox nameBox = new VBox(8);
+        VBox nameBox = new VBox(5); // Reduced spacing
         nameBox.getStyleClass().add("form-group");
         Label lblName = new Label("Part Name *");
         lblName.getStyleClass().add("field-label");
         txtName.getStyleClass().add("field-input");
         txtName.setPromptText("Oil Filter, Brake Pads, etc.");
+        txtName.setPrefHeight(32);
         nameBox.getChildren().addAll(lblName, txtName);
 
-        VBox quantityBox = new VBox(8);
+        VBox quantityBox = new VBox(5);
         quantityBox.getStyleClass().add("form-group");
         Label lblQuantity = new Label("Quantity *");
         lblQuantity.getStyleClass().add("field-label");
         txtQuantity.getStyleClass().add("field-input");
         txtQuantity.setPromptText("50");
+        txtQuantity.setPrefHeight(32);
         quantityBox.getChildren().addAll(lblQuantity, txtQuantity);
 
-        VBox priceBox = new VBox(8);
+        VBox priceBox = new VBox(5);
         priceBox.getStyleClass().add("form-group");
         Label lblPrice = new Label("Price ($) *");
         lblPrice.getStyleClass().add("field-label");
         txtPrice.getStyleClass().add("field-input");
         txtPrice.setPromptText("25.99");
+        txtPrice.setPrefHeight(32);
         priceBox.getChildren().addAll(lblPrice, txtPrice);
 
-        VBox categoryBox = new VBox(8);
+        VBox categoryBox = new VBox(5);
         categoryBox.getStyleClass().add("form-group");
         Label lblCategory = new Label("Category");
         lblCategory.getStyleClass().add("field-label");
         txtCategory.getStyleClass().add("field-input");
         txtCategory.setPromptText("Engine, Brakes, Electrical, etc.");
+        txtCategory.setPrefHeight(32);
         categoryBox.getChildren().addAll(lblCategory, txtCategory);
 
-        VBox supplierBox = new VBox(8);
+        VBox supplierBox = new VBox(5);
         supplierBox.getStyleClass().add("form-group");
         Label lblSupplier = new Label("Supplier (Optional)");
         lblSupplier.getStyleClass().add("field-label");
@@ -109,29 +115,34 @@ public class PartsTab extends BorderPane {
         supplierRow.getChildren().addAll(cmbSupplier, btnRefreshSuppliers);
         supplierBox.getChildren().addAll(lblSupplier, supplierRow);
 
-        HBox formButtons = new HBox(15);
+        HBox formButtons = new HBox(10); // Reduced spacing
         formButtons.getStyleClass().add("form-buttons");
 
         btnAdd = new Button("Add Part");
         btnAdd.getStyleClass().add("btn-primary");
+        btnAdd.setPrefWidth(100);
         btnAdd.setOnAction(e -> addPart());
 
         Button btnClear = new Button("Clear");
         btnClear.getStyleClass().add("btn-secondary");
+        btnClear.setPrefWidth(80);
         btnClear.setOnAction(e -> clearFields());
 
-        Button btnReorder = new Button("Reorder Low Stock");
+        Button btnReorder = new Button("Reorder");
         btnReorder.getStyleClass().add("btn-primary");
+        btnReorder.setPrefWidth(120);
         btnReorder.setOnAction(e -> showLowStock());
 
         formButtons.getChildren().addAll(btnAdd, btnClear, btnReorder);
 
         formBox.getChildren().addAll(formTitle, nameBox, quantityBox, priceBox,
                 categoryBox, supplierBox, formButtons);
-        content.add(formBox, 0, 0);
+        content.getChildren().add(formBox);
 
-        VBox tableBox = new VBox(15);
+        // Right Side - Table
+        VBox tableBox = new VBox(10);
         tableBox.getStyleClass().add("table-box");
+        HBox.setHgrow(tableBox, Priority.ALWAYS);
 
         HBox tableHeader = new HBox();
         tableHeader.getStyleClass().add("table-header-box");
@@ -150,9 +161,10 @@ public class PartsTab extends BorderPane {
 
         createTable();
         table.setPrefHeight(400);
+        VBox.setVgrow(table, Priority.ALWAYS);
 
         tableBox.getChildren().addAll(tableHeader, table);
-        content.add(tableBox, 1, 0);
+        content.getChildren().add(tableBox);
 
         setCenter(content);
         loadParts();
@@ -163,31 +175,31 @@ public class PartsTab extends BorderPane {
 
         TableColumn<Part, Integer> colId = new TableColumn<>("ID");
         colId.setCellValueFactory(new PropertyValueFactory<>("partId"));
-        colId.setPrefWidth(80);
+        colId.setPrefWidth(60);
 
         TableColumn<Part, String> colName = new TableColumn<>("Part Name");
         colName.setCellValueFactory(new PropertyValueFactory<>("partName"));
-        colName.setPrefWidth(200);
+        colName.setPrefWidth(150); // Reduced
 
         TableColumn<Part, Integer> colQuantity = new TableColumn<>("Quantity");
         colQuantity.setCellValueFactory(new PropertyValueFactory<>("quantity"));
-        colQuantity.setPrefWidth(100);
+        colQuantity.setPrefWidth(80); // Reduced
 
         TableColumn<Part, Double> colPrice = new TableColumn<>("Price ($)");
         colPrice.setCellValueFactory(new PropertyValueFactory<>("price"));
-        colPrice.setPrefWidth(100);
+        colPrice.setPrefWidth(90); // Reduced
 
         TableColumn<Part, String> colCategory = new TableColumn<>("Category");
         colCategory.setCellValueFactory(new PropertyValueFactory<>("category"));
-        colCategory.setPrefWidth(120);
+        colCategory.setPrefWidth(100); // Reduced
 
         TableColumn<Part, String> colSupplier = new TableColumn<>("Supplier");
         colSupplier.setCellValueFactory(new PropertyValueFactory<>("supplierName"));
-        colSupplier.setPrefWidth(150);
+        colSupplier.setPrefWidth(120); // Reduced
 
         TableColumn<Part, String> colStatus = new TableColumn<>("Status");
         colStatus.setCellValueFactory(new PropertyValueFactory<>("status"));
-        colStatus.setPrefWidth(100);
+        colStatus.setPrefWidth(80); // Reduced
         colStatus.setCellFactory(column -> new TableCell<Part, String>() {
             @Override
             protected void updateItem(String status, boolean empty) {
@@ -209,16 +221,19 @@ public class PartsTab extends BorderPane {
         });
 
         TableColumn<Part, Void> colActions = new TableColumn<>("Actions");
-        colActions.setPrefWidth(150);
+        colActions.setPrefWidth(180); // Increased
         colActions.setCellFactory(param -> new TableCell<Part, Void>() {
             private final Button btnEdit = new Button("Edit");
             private final Button btnDelete = new Button("Delete");
-            private final HBox buttons = new HBox(8, btnEdit, btnDelete);
+            private final HBox buttons = new HBox(10, btnEdit, btnDelete);
 
             {
                 btnEdit.getStyleClass().add("btn-table-edit");
                 btnDelete.getStyleClass().add("btn-table-delete");
                 buttons.getStyleClass().add("table-actions");
+
+                btnEdit.setPrefWidth(70);
+                btnDelete.setPrefWidth(70);
 
                 btnEdit.setOnAction(e -> {
                     Part part = getTableView().getItems().get(getIndex());

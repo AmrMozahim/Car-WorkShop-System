@@ -1,6 +1,7 @@
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
+import javafx.geometry.Orientation;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.*;
@@ -39,17 +40,17 @@ public class SupplierTab extends BorderPane {
         header.getChildren().addAll(title, subtitle);
         setTop(header);
 
-        // Content
-        GridPane content = new GridPane();
-        content.getStyleClass().add("window-content");
-        content.setPadding(new Insets(25));
-        content.setVgap(20);
-        content.setHgap(20);
+        // --- CHANGED FROM GRIDPANE TO SPLITPANE ---
+        SplitPane content = new SplitPane();
+        content.setOrientation(Orientation.HORIZONTAL);
+        content.getStyleClass().add("content-split-pane");
+        content.setDividerPositions(0.3);
 
         // Left - Form
         VBox formBox = new VBox(20);
         formBox.getStyleClass().add("form-box");
-        formBox.setPrefWidth(350);
+        formBox.setPadding(new Insets(20));
+        // Removed fixed width
 
         Label formTitle = new Label("Add New Supplier");
         formTitle.getStyleClass().add("form-title");
@@ -87,11 +88,16 @@ public class SupplierTab extends BorderPane {
         formButtons.getChildren().addAll(btnAdd, btnClear);
 
         formBox.getChildren().addAll(formTitle, nameBox, phoneBox, formButtons);
-        content.add(formBox, 0, 0);
+
+        // Wrap form in ScrollPane
+        ScrollPane formScroll = new ScrollPane(formBox);
+        formScroll.setFitToWidth(true);
+        formScroll.setStyle("-fx-background-color:transparent; -fx-padding: 0;");
 
         // Right - Table
         VBox tableBox = new VBox(15);
         tableBox.getStyleClass().add("table-box");
+        tableBox.setPadding(new Insets(20));
 
         // Table Header
         HBox tableHeader = new HBox();
@@ -111,13 +117,17 @@ public class SupplierTab extends BorderPane {
 
         // Table
         createTable();
-        table.setPrefHeight(400);
+
+        // Ensure table grows vertically
+        VBox.setVgrow(table, Priority.ALWAYS);
+        table.setMaxHeight(Double.MAX_VALUE);
 
         tableBox.getChildren().addAll(tableHeader, table);
-        content.add(tableBox, 1, 0);
+
+        // Add components to SplitPane
+        content.getItems().addAll(formScroll, tableBox);
 
         setCenter(content);
-
         loadSuppliers();
     }
 
@@ -174,6 +184,7 @@ public class SupplierTab extends BorderPane {
         table.getColumns().addAll(colId, colName, colPhone, colActions);
         table.setItems(supplierList);
         table.setFixedCellSize(45);
+        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
     }
 
     private void loadSuppliers() {

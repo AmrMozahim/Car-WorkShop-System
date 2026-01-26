@@ -40,20 +40,22 @@ public class VehicleTab extends BorderPane {
         header.getChildren().addAll(title, subtitle);
         setTop(header);
 
-        GridPane content = new GridPane();
+        // Use HBox instead of GridPane for better control
+        HBox content = new HBox(25);
         content.getStyleClass().add("window-content");
-        content.setPadding(new Insets(25));
-        content.setVgap(20);
-        content.setHgap(20);
+        content.setPadding(new Insets(20));
 
-        VBox formBox = new VBox(20);
+        // Left Side - Form (30% width)
+        VBox formBox = new VBox(15); // Reduced spacing
         formBox.getStyleClass().add("form-box");
-        formBox.setPrefWidth(350);
+        formBox.setPrefWidth(320);
+        formBox.setMinWidth(300);
+        formBox.setMaxWidth(350);
 
         Label formTitle = new Label("Register New Vehicle");
         formTitle.getStyleClass().add("form-title");
 
-        VBox customerBox = new VBox(8);
+        VBox customerBox = new VBox(5); // Reduced spacing
         customerBox.getStyleClass().add("form-group");
         Label lblCustomer = new Label("Customer *");
         lblCustomer.getStyleClass().add("field-label");
@@ -76,49 +78,56 @@ public class VehicleTab extends BorderPane {
         customerRow.getChildren().addAll(cmbCustomer, btnRefreshCustomers);
         customerBox.getChildren().addAll(lblCustomer, customerRow);
 
-        VBox plateBox = new VBox(8);
+        VBox plateBox = new VBox(5);
         plateBox.getStyleClass().add("form-group");
         Label lblPlate = new Label("Plate Number *");
         lblPlate.getStyleClass().add("field-label");
         txtPlate.getStyleClass().add("field-input");
         txtPlate.setPromptText("ABC-123");
+        txtPlate.setPrefHeight(32);
         plateBox.getChildren().addAll(lblPlate, txtPlate);
 
-        VBox modelBox = new VBox(8);
+        VBox modelBox = new VBox(5);
         modelBox.getStyleClass().add("form-group");
         Label lblModel = new Label("Model");
         lblModel.getStyleClass().add("field-label");
         txtModel.getStyleClass().add("field-input");
         txtModel.setPromptText("Toyota Camry");
+        txtModel.setPrefHeight(32);
         modelBox.getChildren().addAll(lblModel, txtModel);
 
-        VBox yearBox = new VBox(8);
+        VBox yearBox = new VBox(5);
         yearBox.getStyleClass().add("form-group");
         Label lblYear = new Label("Year");
         lblYear.getStyleClass().add("field-label");
         txtYear.getStyleClass().add("field-input");
         txtYear.setPromptText("2020");
+        txtYear.setPrefHeight(32);
         yearBox.getChildren().addAll(lblYear, txtYear);
 
-        HBox formButtons = new HBox(15);
+        HBox formButtons = new HBox(10); // Reduced spacing
         formButtons.getStyleClass().add("form-buttons");
 
         btnAdd = new Button("Register Vehicle");
         btnAdd.getStyleClass().add("btn-primary");
+        btnAdd.setPrefWidth(140);
         btnAdd.setOnAction(e -> addVehicle());
 
         Button btnClear = new Button("Clear");
         btnClear.getStyleClass().add("btn-secondary");
+        btnClear.setPrefWidth(100);
         btnClear.setOnAction(e -> clearFields());
 
         formButtons.getChildren().addAll(btnAdd, btnClear);
 
         formBox.getChildren().addAll(formTitle, customerBox, plateBox, modelBox,
                 yearBox, formButtons);
-        content.add(formBox, 0, 0);
+        content.getChildren().add(formBox);
 
-        VBox tableBox = new VBox(15);
+        // Right Side - Table (70% width)
+        VBox tableBox = new VBox(10); // Reduced spacing
         tableBox.getStyleClass().add("table-box");
+        HBox.setHgrow(tableBox, Priority.ALWAYS); // Make table take remaining space
 
         HBox tableHeader = new HBox();
         tableHeader.getStyleClass().add("table-header-box");
@@ -137,9 +146,10 @@ public class VehicleTab extends BorderPane {
 
         createTable();
         table.setPrefHeight(400);
+        VBox.setVgrow(table, Priority.ALWAYS);
 
         tableBox.getChildren().addAll(tableHeader, table);
-        content.add(tableBox, 1, 0);
+        content.getChildren().add(tableBox);
 
         setCenter(content);
         loadVehicles();
@@ -150,35 +160,39 @@ public class VehicleTab extends BorderPane {
 
         TableColumn<Vehicle, Integer> colId = new TableColumn<>("ID");
         colId.setCellValueFactory(new PropertyValueFactory<>("vehicleId"));
-        colId.setPrefWidth(80);
+        colId.setPrefWidth(60); // Reduced
 
         TableColumn<Vehicle, String> colCustomer = new TableColumn<>("Customer");
         colCustomer.setCellValueFactory(new PropertyValueFactory<>("customerName"));
-        colCustomer.setPrefWidth(150);
+        colCustomer.setPrefWidth(150); // Reduced
 
         TableColumn<Vehicle, String> colPlate = new TableColumn<>("Plate");
         colPlate.setCellValueFactory(new PropertyValueFactory<>("plateNumber"));
-        colPlate.setPrefWidth(120);
+        colPlate.setPrefWidth(120); // Reduced
 
         TableColumn<Vehicle, String> colModel = new TableColumn<>("Model");
         colModel.setCellValueFactory(new PropertyValueFactory<>("model"));
-        colModel.setPrefWidth(150);
+        colModel.setPrefWidth(150); // Reduced
 
         TableColumn<Vehicle, Integer> colYear = new TableColumn<>("Year");
         colYear.setCellValueFactory(new PropertyValueFactory<>("year"));
-        colYear.setPrefWidth(80);
+        colYear.setPrefWidth(80); // Reduced
 
         TableColumn<Vehicle, Void> colActions = new TableColumn<>("Actions");
-        colActions.setPrefWidth(120);
+        colActions.setPrefWidth(180); // Increased to show buttons
         colActions.setCellFactory(param -> new TableCell<Vehicle, Void>() {
             private final Button btnEdit = new Button("Edit");
             private final Button btnDelete = new Button("Delete");
-            private final HBox buttons = new HBox(8, btnEdit, btnDelete);
+            private final HBox buttons = new HBox(10, btnEdit, btnDelete); // Increased spacing
 
             {
                 btnEdit.getStyleClass().add("btn-table-edit");
                 btnDelete.getStyleClass().add("btn-table-delete");
                 buttons.getStyleClass().add("table-actions");
+
+                // Set button sizes
+                btnEdit.setPrefWidth(70);
+                btnDelete.setPrefWidth(70);
 
                 btnEdit.setOnAction(e -> {
                     Vehicle vehicle = getTableView().getItems().get(getIndex());

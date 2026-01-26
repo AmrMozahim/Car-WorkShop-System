@@ -6,7 +6,6 @@ import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.*;
 import java.sql.ResultSet;
 import java.sql.PreparedStatement;
-import java.sql.SQLException;
 
 public class CustomerTab extends BorderPane {
 
@@ -42,93 +41,84 @@ public class CustomerTab extends BorderPane {
         header.getChildren().addAll(title, subtitle);
         setTop(header);
 
-        // Content
-        GridPane content = new GridPane();
+        // Content - Using HBox instead of GridPane for better control
+        HBox content = new HBox(25);
         content.getStyleClass().add("window-content");
         content.setPadding(new Insets(25));
-        content.setVgap(20);
-        content.setHgap(20);
 
-        // Left Side - Form
-        VBox formBox = new VBox(20);
+        // Left Side - Form (30% width)
+        VBox formBox = new VBox(15);
         formBox.getStyleClass().add("form-box");
-        formBox.setPrefWidth(350);
+        formBox.setPrefWidth(320); // Reduced from 350
+        formBox.setMinWidth(300);
+        formBox.setMaxWidth(350);
 
-        Label formTitle = new Label("Customer Information");
+        Label formTitle = new Label("Add New Customer");
         formTitle.getStyleClass().add("form-title");
 
         // Name Field
-        VBox nameBox = new VBox(8);
+        VBox nameBox = new VBox(5); // Reduced spacing
         nameBox.getStyleClass().add("form-group");
         Label lblName = new Label("Full Name *");
         lblName.getStyleClass().add("field-label");
         txtName.getStyleClass().add("field-input");
         txtName.setPromptText("Enter customer name");
+        txtName.setPrefHeight(32); // Reduced height
         nameBox.getChildren().addAll(lblName, txtName);
 
         // Phone Field
-        VBox phoneBox = new VBox(8);
+        VBox phoneBox = new VBox(5);
         phoneBox.getStyleClass().add("form-group");
         Label lblPhone = new Label("Phone Number");
         lblPhone.getStyleClass().add("field-label");
         txtPhone.getStyleClass().add("field-input");
         txtPhone.setPromptText("Enter phone number");
+        txtPhone.setPrefHeight(32);
         phoneBox.getChildren().addAll(lblPhone, txtPhone);
 
         // Email Field
-        VBox emailBox = new VBox(8);
+        VBox emailBox = new VBox(5);
         emailBox.getStyleClass().add("form-group");
         Label lblEmail = new Label("Email Address");
         lblEmail.getStyleClass().add("field-label");
         txtEmail.getStyleClass().add("field-input");
         txtEmail.setPromptText("Enter email address");
+        txtEmail.setPrefHeight(32);
         emailBox.getChildren().addAll(lblEmail, txtEmail);
 
         // Address Field
-        VBox addressBox = new VBox(8);
+        VBox addressBox = new VBox(5);
         addressBox.getStyleClass().add("form-group");
         Label lblAddress = new Label("Address");
         lblAddress.getStyleClass().add("field-label");
         txtAddress.getStyleClass().add("field-input");
         txtAddress.setPromptText("Enter address");
+        txtAddress.setPrefHeight(32);
         addressBox.getChildren().addAll(lblAddress, txtAddress);
 
         // Form Buttons
-        HBox formButtons = new HBox(15);
+        HBox formButtons = new HBox(10); // Reduced spacing
         formButtons.getStyleClass().add("form-buttons");
 
         btnAdd = new Button("Add Customer");
         btnAdd.getStyleClass().add("btn-primary");
-        btnAdd.setOnAction(e -> {
-            if (editingCustomer != null) {
-                updateCustomer(editingCustomer);
-            } else {
-                addCustomer();
-            }
-        });
+        btnAdd.setPrefWidth(140);
+        btnAdd.setOnAction(e -> addCustomer());
 
         Button btnClear = new Button("Clear");
         btnClear.getStyleClass().add("btn-secondary");
+        btnClear.setPrefWidth(100);
         btnClear.setOnAction(e -> clearFields());
 
-        Button btnCancelEdit = new Button("Cancel Edit");
-        btnCancelEdit.getStyleClass().add("btn-secondary");
-        btnCancelEdit.setVisible(false);
-        btnCancelEdit.setOnAction(e -> {
-            editingCustomer = null;
-            clearFields();
-            btnAdd.setText("Add Customer");
-            btnCancelEdit.setVisible(false);
-        });
-
-        formButtons.getChildren().addAll(btnAdd, btnClear, btnCancelEdit);
+        formButtons.getChildren().addAll(btnAdd, btnClear);
 
         formBox.getChildren().addAll(formTitle, nameBox, phoneBox, emailBox, addressBox, formButtons);
-        content.add(formBox, 0, 0);
+        content.getChildren().add(formBox);
 
-        // Right Side - Table
-        VBox tableBox = new VBox(15);
+        // Right Side - Table (70% width)
+        VBox tableBox = new VBox(10); // Reduced spacing
         tableBox.getStyleClass().add("table-box");
+        HBox.setHgrow(tableBox, Priority.ALWAYS); // Make table take remaining space
 
         // Table Header
         HBox tableHeader = new HBox();
@@ -149,9 +139,10 @@ public class CustomerTab extends BorderPane {
         // Table
         createTable();
         table.setPrefHeight(400);
+        VBox.setVgrow(table, Priority.ALWAYS); // Make table expand vertically
 
         tableBox.getChildren().addAll(tableHeader, table);
-        content.add(tableBox, 1, 0);
+        content.getChildren().add(tableBox);
 
         setCenter(content);
         loadCustomers();
@@ -162,36 +153,40 @@ public class CustomerTab extends BorderPane {
 
         TableColumn<Customer, Integer> colId = new TableColumn<>("ID");
         colId.setCellValueFactory(new PropertyValueFactory<>("customerId"));
-        colId.setPrefWidth(80);
+        colId.setPrefWidth(60); // Reduced width
 
         TableColumn<Customer, String> colName = new TableColumn<>("Name");
         colName.setCellValueFactory(new PropertyValueFactory<>("fullName"));
-        colName.setPrefWidth(200);
+        colName.setPrefWidth(180); // Reduced width
 
         TableColumn<Customer, String> colPhone = new TableColumn<>("Phone");
         colPhone.setCellValueFactory(new PropertyValueFactory<>("phone"));
-        colPhone.setPrefWidth(150);
+        colPhone.setPrefWidth(130); // Reduced width
 
         TableColumn<Customer, String> colEmail = new TableColumn<>("Email");
         colEmail.setCellValueFactory(new PropertyValueFactory<>("email"));
-        colEmail.setPrefWidth(200);
+        colEmail.setPrefWidth(180); // Reduced width
 
         TableColumn<Customer, String> colAddress = new TableColumn<>("Address");
         colAddress.setCellValueFactory(new PropertyValueFactory<>("address"));
-        colAddress.setPrefWidth(200);
+        colAddress.setPrefWidth(150); // Reduced width
 
-        // Actions Column
+        // Actions Column - Increased width to show both buttons clearly
         TableColumn<Customer, Void> colActions = new TableColumn<>("Actions");
-        colActions.setPrefWidth(150);
+        colActions.setPrefWidth(180); // Increased to ensure buttons are visible
         colActions.setCellFactory(param -> new TableCell<Customer, Void>() {
             private final Button btnEdit = new Button("Edit");
             private final Button btnDelete = new Button("Delete");
-            private final HBox buttons = new HBox(8, btnEdit, btnDelete);
+            private final HBox buttons = new HBox(10, btnEdit, btnDelete); // Increased spacing
 
             {
                 btnEdit.getStyleClass().add("btn-table-edit");
                 btnDelete.getStyleClass().add("btn-table-delete");
                 buttons.getStyleClass().add("table-actions");
+
+                // Set button sizes
+                btnEdit.setPrefWidth(70);
+                btnDelete.setPrefWidth(70);
 
                 btnEdit.setOnAction(e -> {
                     Customer customer = getTableView().getItems().get(getIndex());
@@ -218,6 +213,9 @@ public class CustomerTab extends BorderPane {
         table.getColumns().addAll(colId, colName, colPhone, colEmail, colAddress, colActions);
         table.setItems(customerList);
         table.setFixedCellSize(45);
+
+        // Make table fill available width
+        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
     }
 
     private void loadCustomers() {
@@ -244,6 +242,12 @@ public class CustomerTab extends BorderPane {
     }
 
     private void addCustomer() {
+        // التحقق مما إذا كان في وضع التعديل
+        if (editingCustomer != null) {
+            updateCustomer(editingCustomer);
+            return;
+        }
+
         String name = txtName.getText().trim();
         String phone = txtPhone.getText().trim();
         String email = txtEmail.getText().trim();
@@ -258,11 +262,6 @@ public class CustomerTab extends BorderPane {
             PreparedStatement pstmt = DB.prepareStatement(
                     "INSERT INTO customer (full_name, phone, email, address) VALUES (?, ?, ?, ?)"
             );
-            if (pstmt == null) {
-                showAlert("Error", "Failed to prepare statement. Check database connection.");
-                return;
-            }
-
             pstmt.setString(1, name);
             pstmt.setString(2, phone);
             pstmt.setString(3, email);
@@ -274,14 +273,9 @@ public class CustomerTab extends BorderPane {
                 clearFields();
                 loadCustomers();
 
-                // Refresh other components if they exist
-                try {
-                    CustomerManager.getInstance().refresh();
-                    CustomerManager.getInstance().addCustomer(name);
-                    Main.refreshDashboardGlobal();
-                } catch (Exception e) {
-                    // These might not exist, just continue
-                }
+                CustomerManager.getInstance().refresh();
+                CustomerManager.getInstance().addCustomer(name);
+                Main.refreshDashboardGlobal();
             } else {
                 showAlert("Error", "Failed to add customer");
             }
@@ -306,11 +300,6 @@ public class CustomerTab extends BorderPane {
             PreparedStatement pstmt = DB.prepareStatement(
                     "UPDATE customer SET full_name=?, phone=?, email=?, address=? WHERE customer_id=?"
             );
-            if (pstmt == null) {
-                showAlert("Error", "Failed to prepare statement. Check database connection.");
-                return;
-            }
-
             pstmt.setString(1, name);
             pstmt.setString(2, phone);
             pstmt.setString(3, email);
@@ -322,24 +311,10 @@ public class CustomerTab extends BorderPane {
                 showAlert("Success", "Customer updated successfully");
                 clearFields();
                 loadCustomers();
-
-                // Reset editing state
-                editingCustomer = null;
-                btnAdd.setText("Add Customer");
-                HBox formButtons = (HBox) ((VBox) txtAddress.getParent().getParent().getParent())
-                        .getChildren().get(5);
-                Button btnCancelEdit = (Button) formButtons.getChildren().get(2);
-                btnCancelEdit.setVisible(false);
-
-                // Refresh other components if they exist
-                try {
-                    CustomerManager.getInstance().refresh();
-                    Main.refreshDashboardGlobal();
-                } catch (Exception e) {
-                    // These might not exist, just continue
-                }
+                CustomerManager.getInstance().refresh();
+                Main.refreshDashboardGlobal();
             } else {
-                showAlert("Error", "Failed to update customer. Customer may not exist.");
+                showAlert("Error", "Failed to update customer");
             }
         } catch (Exception e) {
             showAlert("Error", "Error updating customer: " + e.getMessage());
@@ -356,12 +331,6 @@ public class CustomerTab extends BorderPane {
         txtAddress.setText(customer.getAddress());
 
         btnAdd.setText("Update Customer");
-
-        // Show cancel edit button
-        HBox formButtons = (HBox) ((VBox) txtAddress.getParent().getParent().getParent())
-                .getChildren().get(5);
-        Button btnCancelEdit = (Button) formButtons.getChildren().get(2);
-        btnCancelEdit.setVisible(true);
     }
 
     private void deleteCustomer(Customer customer) {
@@ -382,33 +351,32 @@ public class CustomerTab extends BorderPane {
                 try {
                     int customerId = customer.getCustomerId();
 
-                    // Use transaction or individual deletes
-                    // 1. Delete service_sparepart records
+                    // 1. حذف سجلات service_sparepart المرتبطة
                     DB.executeUpdate(
                             "DELETE FROM service_sparepart WHERE vehicle_service_id IN (" +
                                     "SELECT vehicle_service_id FROM vehicle_service WHERE vehicle_id IN (" +
                                     "SELECT vehicle_id FROM vehicle WHERE customer_id = " + customerId + "))"
                     );
 
-                    // 2. Delete vehicle_service records
+                    // 2. حذف سجلات vehicle_service
                     DB.executeUpdate(
                             "DELETE FROM vehicle_service WHERE vehicle_id IN (" +
                                     "SELECT vehicle_id FROM vehicle WHERE customer_id = " + customerId + ")"
                     );
 
-                    // 3. Delete vehicles
+                    // 3. حذف المركبات
                     DB.executeUpdate("DELETE FROM vehicle WHERE customer_id = " + customerId);
 
-                    // 4. Delete invoice items
+                    // 4. حذف عناصر الفواتير
                     DB.executeUpdate(
                             "DELETE FROM salesinvoiceitems WHERE invoice_id IN (" +
                                     "SELECT invoice_id FROM salesinvoice WHERE customer_id = " + customerId + ")"
                     );
 
-                    // 5. Delete invoices
+                    // 5. حذف الفواتير
                     DB.executeUpdate("DELETE FROM salesinvoice WHERE customer_id = " + customerId);
 
-                    // 6. Delete customer
+                    // 6. حذف العميل
                     PreparedStatement pstmt = DB.prepareStatement(
                             "DELETE FROM customer WHERE customer_id = ?"
                     );
@@ -418,20 +386,9 @@ public class CustomerTab extends BorderPane {
                     if (result > 0) {
                         showAlert("Success", "Customer and all associated records deleted successfully");
                         loadCustomers();
-
-                        // If we were editing this customer, clear the form
-                        if (editingCustomer != null && editingCustomer.getCustomerId() == customerId) {
-                            clearFields();
-                        }
-
-                        // Refresh other components if they exist
-                        try {
-                            CustomerManager.getInstance().refresh();
-                            CustomerManager.getInstance().removeCustomer(customer.getFullName());
-                            Main.refreshDashboardGlobal();
-                        } catch (Exception e) {
-                            // These might not exist, just continue
-                        }
+                        CustomerManager.getInstance().refresh();
+                        CustomerManager.getInstance().removeCustomer(customer.getFullName());
+                        Main.refreshDashboardGlobal();
                     }
                 } catch (Exception e) {
                     showAlert("Error", "Error deleting customer: " + e.getMessage());
@@ -442,6 +399,8 @@ public class CustomerTab extends BorderPane {
     }
 
     private void clearFields() {
+        editingCustomer = null;
+        btnAdd.setText("Add Customer");
         txtName.clear();
         txtPhone.clear();
         txtEmail.clear();
